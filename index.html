@@ -8781,17 +8781,20 @@ async function loadRoles() {
 }
 
 async function saveRoles() {
+  // Backup localStorage
+  localStorage.setItem('gp_roles_config', JSON.stringify(GP_ROLES));
   try {
-    const lid = getLocalId() || 'SA';
-    const rows = Object.entries(GP_ROLES).map(([role_key, v]) => ({
-      local_id: lid, role_key, permissions: v.permissions || {}
-    }));
+    // SA global → local_id = null, sinon local_id de l'user
+    const lid = getLocalId() || null;
+    const rows = Object.entries(GP_ROLES)
+      .filter(([, v]) => !v.isSystem)
+      .map(([role_key, v]) => ({ local_id: lid, role_key, permissions: v.permissions || {}, label: v.label || role_key, color: v.color || '#6c63ff' }));
     if (rows.length > 0) {
-      await sb.from('gp_roles_config').upsert(rows, { onConflict: 'local_id,role_key' });
+      const { error } = await sb.from('gp_roles_config').upsert(rows, { onConflict: 'local_id,role_key', ignoreDuplicates: false });
+      if (error) console.warn('[SB] saveRoles:', error.message);
     }
   } catch(e) {
-    // Fallback localStorage
-    localStorage.setItem('gp_roles_config', JSON.stringify(GP_ROLES));
+    console.warn('[SB] saveRoles error:', e.message);
   }
 }
 
