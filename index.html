@@ -885,58 +885,58 @@
       <div class="logo-sub">Système de gestion commerce</div>
     </div>
     <nav class="nav">
-      <div class="nav-item active" onclick="navigate('dashboard')">
+      <div class="nav-item active" onclick="navigate('dashboard')" data-nav-module="dashboard">
         <span class="icon">📊</span> Tableau de bord
       </div>
-      <div class="nav-item" onclick="navigate('caisse')">
+      <div class="nav-item" onclick="navigate('caisse')" data-nav-module="caisse">
         <span class="icon">🧾</span> Caisse & Ventes
       </div>
-      <div class="nav-item" onclick="navigate('conteneurs')">
+      <div class="nav-item" onclick="navigate('conteneurs')" data-nav-module="conteneurs">
         <span class="icon">🚢</span> Conteneurs
       </div>
-      <div class="nav-item" onclick="navigate('commandes')">
+      <div class="nav-item" onclick="navigate('commandes')" data-nav-module="commandes">
         <span class="icon">📋</span> Ordres (Ventes)
       </div>
-      <div class="nav-item" onclick="navigate('docscont')">
+      <div class="nav-item" onclick="navigate('docscont')" data-nav-module="docscont">
         <span class="icon">📑</span> Docs Conteneurs
       </div>
-      <div class="nav-item" onclick="navigate('fonds')">
+      <div class="nav-item" onclick="navigate('fonds')" data-nav-module="fonds">
         <span class="icon">💵</span> Fonds de caisse
       </div>
-      <div class="nav-item" onclick="navigate('stock')">
+      <div class="nav-item" onclick="navigate('stock')" data-nav-module="stock">
         <span class="icon">📦</span> Stock
       </div>
-      <div class="nav-item" onclick="navigate('locaux')">
+      <div class="nav-item" onclick="navigate('locaux')" data-nav-module="locaux">
         <span class="icon">🏪</span> Locaux / Zones
       </div>
-      <div class="nav-item" onclick="navigate('clients')">
+      <div class="nav-item" onclick="navigate('clients')" data-nav-module="clients">
         <span class="icon">👥</span> Clients
       </div>
-      <div class="nav-item" id="nav-alerts" onclick="navigate('alerts')">
+      <div class="nav-item" id="nav-alerts" onclick="navigate('alerts')" data-nav-module="alerts">
         <span class="icon">🔔</span> Alertes
         <span class="badge" id="alert-count">0</span>
       </div>
-      <div class="nav-item" onclick="navigate('settings')">
+      <div class="nav-item" onclick="navigate('settings')" data-nav-module="settings">
         <span class="icon">⚙️</span> Paramètres
       </div>
       <div class="nav-item" id="nav-superadmin" style="display:none;border-top:1px solid rgba(255,209,102,0.3);margin-top:4px;padding-top:8px;" onclick="navigate('superadmin')">
         <span class="icon">👑</span> <span style="color:var(--gold);">Super Admin</span>
       </div>
       <div style="height:1px;background:var(--border);margin:6px 0;"></div>
-      <div class="nav-item" onclick="navigate('employes')">
+      <div class="nav-item" onclick="navigate('employes')" data-nav-module="employes">
         <span class="icon">👨‍💼</span> Employés
       </div>
-      <div class="nav-item" onclick="navigate('conges')">
+      <div class="nav-item" onclick="navigate('conges')" data-nav-module="conges">
         <span class="icon">🏖️</span> Congés
         <span class="badge" id="badge-conges" style="display:none">0</span>
       </div>
-      <div class="nav-item" onclick="navigate('livraisons')">
+      <div class="nav-item" onclick="navigate('livraisons')" data-nav-module="livraisons">
         <span class="icon">🚚</span> Bons de livraison
       </div>
-      <div class="nav-item" onclick="navigate('docs-rh')">
+      <div class="nav-item" onclick="navigate('docs-rh')" data-nav-module="docs_rh">
         <span class="icon">📋</span> Documents RH
       </div>
-      <div class="nav-item" onclick="navigate('docs-admin')">
+      <div class="nav-item" onclick="navigate('docs-admin')" data-nav-module="docs_admin">
         <span class="icon">🏢</span> Docs Administratifs
       </div>
     </nav>
@@ -2635,7 +2635,7 @@ const GP_APP_VERSION = '3.5.0';
   const stored = localStorage.getItem('gp_app_version');
   if (stored !== GP_APP_VERSION) {
     // Nouvelle version → vider les configs qui pourraient être corrompues
-    ['gp_roles_config'].forEach(k => localStorage.removeItem(k));
+    // gp_roles_config géré en Supabase
     localStorage.setItem('gp_app_version', GP_APP_VERSION);
     console.log(`[GestionPro] Version ${GP_APP_VERSION} — cache rôles vidé`);
   }
@@ -8713,6 +8713,19 @@ function isSuperAdmin() {
   return GP_USER && normalizeRole(GP_USER.role) === 'super_admin';
 }
 
+function applyNavPermissions() {
+  if (isSuperAdmin()) {
+    // SA voit tout
+    document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => el.style.display = '');
+    return;
+  }
+  document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => {
+    const module = el.dataset.navModule;
+    const canRead = hasPermission(module, 'read');
+    el.style.display = canRead ? '' : 'none';
+  });
+}
+
 function hasPermission(module, action) {
   if (isSuperAdmin()) return true;
   const normalizedRole = normalizeRole(GP_USER?.role);
@@ -8768,33 +8781,40 @@ function userKey(key) {
 
 // ─── CHARGEMENT RÔLES ─────────────────────────────────────────
 async function loadRoles() {
+  GP_ROLES = {};
   try {
-    const lid = getLocalId() || 'SA';
-    const { data } = await sb.from('gp_roles_config').select('role_key,permissions').eq('local_id', lid);
-    GP_ROLES = {};
-    (data || []).forEach(r => { GP_ROLES[r.role_key] = { permissions: r.permissions }; });
+    const { data, error } = await sb.from('gp_roles_config').select('*');
+    if (error) throw error;
+    (data || []).forEach(r => {
+      GP_ROLES[r.role_key] = {
+        label: r.label || r.role_key,
+        color: r.color || '#6c63ff',
+        isSystem: r.is_system || false,
+        permissions: r.permissions || {}
+      };
+    });
   } catch(e) {
-    // Fallback localStorage
-    const saved = localStorage.getItem('gp_roles_config');
-    if (saved) { try { GP_ROLES = JSON.parse(saved); } catch(e2) { GP_ROLES = {}; } }
+    console.warn('[SB] loadRoles:', e.message);
   }
 }
 
 async function saveRoles() {
-  // Backup localStorage
-  localStorage.setItem('gp_roles_config', JSON.stringify(GP_ROLES));
   try {
-    // SA global → local_id = null, sinon local_id de l'user
-    const lid = getLocalId() || null;
-    const rows = Object.entries(GP_ROLES)
-      .filter(([, v]) => !v.isSystem)
-      .map(([role_key, v]) => ({ local_id: lid, role_key, permissions: v.permissions || {}, label: v.label || role_key, color: v.color || '#6c63ff' }));
+    const rows = Object.entries(GP_ROLES).map(([role_key, v]) => ({
+      role_key,
+      label: v.label || role_key,
+      color: v.color || '#6c63ff',
+      is_system: v.isSystem || false,
+      permissions: v.permissions || {}
+    }));
     if (rows.length > 0) {
-      const { error } = await sb.from('gp_roles_config').upsert(rows, { onConflict: 'local_id,role_key', ignoreDuplicates: false });
-      if (error) console.warn('[SB] saveRoles:', error.message);
+      const { error } = await sb.from('gp_roles_config')
+        .upsert(rows, { onConflict: 'role_key' });
+      if (error) throw error;
     }
   } catch(e) {
-    console.warn('[SB] saveRoles error:', e.message);
+    console.warn('[SB] saveRoles:', e.message);
+    toast('⚠️ Erreur sauvegarde permissions: ' + e.message, 'error');
   }
 }
 
@@ -8804,16 +8824,16 @@ function getAllRoles() {
   Object.entries(DEFAULT_ROLES).forEach(([key, role]) => {
     merged[key] = { ...role, permissions: JSON.parse(JSON.stringify(role.permissions || {})) };
   });
-  // 2. Appliquer overrides GP_ROLES
+  // 2. Appliquer overrides GP_ROLES — si une clé existe dans GP_ROLES, SES permissions priment toujours
   Object.entries(GP_ROLES).forEach(([key, override]) => {
     if (!override) return;
-    const hasRealPerms = override.permissions && Object.keys(override.permissions).length > 0;
+    // Si 'permissions' est défini dans l'override (même vide {}), on l'utilise
+    const hasPermKey = override.hasOwnProperty('permissions');
     if (merged[key]) {
       merged[key] = {
         ...merged[key],
         ...override,
-        // ✅ N'utiliser override.permissions QUE s'il est non-vide
-        permissions: hasRealPerms ? override.permissions : merged[key].permissions
+        permissions: hasPermKey ? override.permissions : merged[key].permissions
       };
     } else {
       merged[key] = { ...override };
@@ -8970,7 +8990,15 @@ async function startApp() {
   if (appWrap) appWrap.style.display = 'none';
 
   try {
-    loadRoles();
+    await loadRoles();
+    // Si aucun rôle en DB → initialiser avec les rôles système par défaut
+    if (Object.keys(GP_ROLES).length === 0) {
+      GP_ROLES = {};
+      Object.entries(DEFAULT_ROLES).forEach(([key, r]) => {
+        GP_ROLES[key] = { label: r.label, color: r.color, isSystem: r.isSystem, permissions: JSON.parse(JSON.stringify(r.permissions)) };
+      });
+      await saveRoles();
+    }
     await loadSAData();
     updateSALocalSwitcher(); // populate dropdown with loaded locaux
     await loadUserData();
@@ -8990,6 +9018,7 @@ async function startApp() {
   applyLang();
   updateEmployeSelects();
   updateSALocalSwitcher();
+  applyNavPermissions(); // cacher les sections selon le rôle
   const pending = (conges||[]).filter(c=>c.statut==='pending').length;
   const badge = document.getElementById('badge-conges');
   if(badge){ badge.textContent=pending; badge.style.display=pending>0?'':'none'; }
@@ -10059,15 +10088,27 @@ async function saveSAUser() {
   const existing = GP_USERS_ALL.find(u => u.email === email && u.id !== id);
   if (existing) { toast('Email déjà utilisé', 'error'); return; }
 
+  // Si modification sans nouveau mot de passe, récupérer l'ancien
+  let finalPwd = pwd;
+  if (!finalPwd && id) {
+    const existingUser = GP_USERS_ALL.find(u => u.id === id);
+    finalPwd = existingUser?.password || '';
+    if (!finalPwd) {
+      // Récupérer depuis Supabase
+      const { data: dbUser } = await sb.from('gp_users').select('password').eq('id', id).maybeSingle();
+      finalPwd = dbUser?.password || 'changeme';
+    }
+  }
+
   const obj = {
     id:        id || 'U' + Date.now(),
     nom, email, role,
+    password:  finalPwd,
     prenom:    document.getElementById('sau-prenom').value.trim(),
     telephone: document.getElementById('sau-tel').value.trim(),
     local_id:  localId || null,
     actif
   };
-  if (pwd) obj.password = pwd;
 
   const { error } = await sb.from('gp_users').upsert(obj, { onConflict: 'id' });
   if (error) { toast('❌ Erreur: ' + error.message, 'error'); return; }
@@ -10447,18 +10488,19 @@ function renderSAUsers() {
       GP_LOCAUX_ALL.map(l => `<option value="${l.id}" ${cur===l.id?'selected':''}>${l.nom}</option>`).join('');
   }
 
-  // Populate role filter
+  // Populate role filter — toujours repopuler pour inclure nouveaux rôles
   const roleSel = document.getElementById('sa-user-filter-role');
-  if (roleSel && roleSel.children.length <= 1) {
+  if (roleSel) {
+    const curRole = roleSel.value || 'all';
     const allRoles = getAllRoles();
     roleSel.innerHTML = '<option value="all">Tous les rôles</option>' +
-      Object.entries(allRoles).map(([k,r]) => `<option value="${k}">${r.label}</option>`).join('');
+      Object.entries(allRoles).map(([k,r]) => `<option value="${k}" ${curRole===k?'selected':''}>${r.label}</option>`).join('');
   }
 
   let filtered = GP_USERS_ALL.filter(u => {
     if (q && !`${u.nom} ${u.prenom} ${u.email}`.toLowerCase().includes(q)) return false;
     if (fLocal !== 'all' && u.local_id !== fLocal) return false;
-    if (fRole  !== 'all' && u.role    !== fRole)   return false;
+    if (fRole  !== 'all' && normalizeRole(u.role) !== normalizeRole(fRole)) return false;
     return true;
   });
 
@@ -10482,6 +10524,17 @@ function renderSAUsers() {
     }).join('');
 }
 
+function updateSAUserLocalVisibility() {
+  const role = document.getElementById('sau-role')?.value || '';
+  const localGroup = document.getElementById('sau-local-group');
+  if (!localGroup) return;
+  const allRoles = getAllRoles();
+  const roleObj = allRoles[role];
+  // Super admin n'a pas besoin de local, les autres oui
+  const needsLocal = roleObj?.localRequired !== false && role !== 'super_admin';
+  localGroup.style.display = needsLocal ? '' : 'none';
+}
+
 function openSAUserModal(id) {
   const u = id ? GP_USERS_ALL.find(x => x.id === id) : null;
 
@@ -10495,11 +10548,14 @@ function openSAUserModal(id) {
   const roleSel = document.getElementById('sau-role');
   if (roleSel) {
     const allRoles = getAllRoles();
+    const userRole = u?.role ? normalizeRole(u.role) : '';
     roleSel.innerHTML = Object.entries(allRoles)
       .filter(([k]) => k !== 'super_admin')
-      .map(([k,r]) => `<option value="${k}" ${u?.role===k?'selected':''}>${r.label}</option>`).join('');
+      .map(([k,r]) => `<option value="${k}" ${normalizeRole(k)===userRole?'selected':''}>${r.label}</option>`).join('');
   }
 
+  // Mettre à jour visibilité local selon rôle
+  updateSAUserLocalVisibility();
   document.getElementById('sau-id').value     = id || '';
   document.getElementById('sau-nom').value    = u?.nom || '';
   document.getElementById('sau-prenom').value = u?.prenom || '';
@@ -10598,16 +10654,24 @@ function togglePermission(cb) {
   const action = cb.dataset.action;
 
   if (!GP_ROLES[key]) {
+    // Copier toutes les permissions de base dans GP_ROLES pour override complet
     const base = DEFAULT_ROLES[key];
-    GP_ROLES[key] = { ...(base||{}), permissions: JSON.parse(JSON.stringify(base?.permissions||{})) };
+    GP_ROLES[key] = {
+      label: base?.label || key,
+      color: base?.color || '#888',
+      isSystem: base?.isSystem || false,
+      permissions: JSON.parse(JSON.stringify(base?.permissions || {}))
+    };
   }
+  if (!GP_ROLES[key].permissions) GP_ROLES[key].permissions = {};
   if (!GP_ROLES[key].permissions[mod]) GP_ROLES[key].permissions[mod] = [];
 
   const arr = GP_ROLES[key].permissions[mod];
   if (cb.checked) { if (!arr.includes(action)) arr.push(action); }
   else GP_ROLES[key].permissions[mod] = arr.filter(a => a !== action);
 
-  saveRoles();
+  saveRoles(); // async — sauvegarde en Supabase
+  applyNavPermissions(); // mettre à jour le nav immédiatement
   const label = cb.closest('label');
   if (label) {
     const labels = {read:'Voir', create:'Créer', update:'Modifier', delete:'Supprimer', export:'Exporter', approuver:'Approuver'};
