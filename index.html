@@ -857,8 +857,12 @@
         <p>Système de gestion commerce</p>
       </div>
       <div class="lf">
+        <label>Code d'accès</label>
+        <input type="text" id="l-code" placeholder="ex: mon-commerce" autocomplete="off" style="text-transform:lowercase;" oninput="this.value=this.value.toLowerCase().replace(/\s/g,'-')">
+      </div>
+      <div class="lf">
         <label>Email</label>
-        <input type="email" id="l-email" placeholder="admin@demo.ma" autocomplete="email">
+        <input type="email" id="l-email" placeholder="admin@votrecommerce.ma" autocomplete="email">
       </div>
       <div class="lf">
         <label>Mot de passe</label>
@@ -868,7 +872,7 @@
       <div class="lerr" id="l-err"></div>
       <div class="ldemo">
         <h4>🧪 Comptes disponibles</h4>
-        <div class="ldemo-row"><span>👑 Super Admin</span><button onclick="fillLogin('admin@demo.ma','admin123')">admin@demo.ma / admin123</button></div>
+        <div class="ldemo-row"><span>👑 Super Admin</span><button onclick="fillLogin('admin@demo.ma','admin123','demo')">Code: demo / admin@demo.ma / admin123</button></div>
         <div class="ldemo-row"><span>🏪 Admin</span><button onclick="fillLogin('admin.casa@demo.ma','admin123')">admin.casa@demo.ma / admin123</button></div>
         <div class="ldemo-row"><span>💳 Caissier</span><button onclick="fillLogin('caissier@demo.ma','caissier123')">caissier@demo.ma / caissier123</button></div>
         <div class="ldemo-row"><span>👨‍💼 RH</span><button onclick="fillLogin('rh@demo.ma','rh123')">rh@demo.ma / rh123</button></div>
@@ -882,7 +886,7 @@
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-title">GestionPro</div>
-      <div class="logo-sub">Système de gestion commerce</div>
+      <div class="logo-sub" id="sidebar-tenant-name">Système de gestion commerce</div>
     </div>
     <nav class="nav">
       <div class="nav-item active" onclick="navigate('dashboard')" data-nav-module="dashboard">
@@ -921,6 +925,9 @@
       </div>
       <div class="nav-item" id="nav-superadmin" style="display:none;border-top:1px solid rgba(255,209,102,0.3);margin-top:4px;padding-top:8px;" onclick="navigate('superadmin')">
         <span class="icon">👑</span> <span style="color:var(--gold);">Super Admin</span>
+      </div>
+      <div class="nav-item" id="nav-owner-admin" style="display:none;border-top:1px solid rgba(0,200,150,0.3);margin-top:4px;padding-top:8px;" onclick="navigate('owner-admin')" data-nav-module="owner-admin">
+        <span class="icon">🏢</span> <span style="color:var(--accent);">Mes Clients</span>
       </div>
       <div style="height:1px;background:var(--border);margin:6px 0;"></div>
       <div class="nav-item" onclick="navigate('employes')" data-nav-module="employes">
@@ -1730,6 +1737,57 @@
       </div>
 
       <!-- ═══════════════════════════════ DOCS ADMINISTRATIFS ═══════════════════════════════ -->
+
+      <!-- ═══════════════════ OWNER ADMIN — GESTION CLIENTS ═══════════════════ -->
+      <div class="page" id="page-owner-admin">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+          <div class="stat-card green" style="flex:1;min-width:160px;">
+            <div class="stat-icon">🏢</div>
+            <div class="stat-value" id="oa-stat-total">0</div>
+            <div class="stat-label">Clients totaux</div>
+          </div>
+          <div class="stat-card" style="flex:1;min-width:160px;">
+            <div class="stat-icon">✅</div>
+            <div class="stat-value" id="oa-stat-actif">0</div>
+            <div class="stat-label">Actifs</div>
+          </div>
+          <div class="stat-card orange" style="flex:1;min-width:160px;">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-value" id="oa-stat-soon">0</div>
+            <div class="stat-label">Expirent bientôt</div>
+          </div>
+          <div class="stat-card" style="flex:1;min-width:160px;border-color:rgba(224,49,49,0.3);">
+            <div class="stat-icon">❌</div>
+            <div class="stat-value" id="oa-stat-expired" style="color:var(--red);">0</div>
+            <div class="stat-label">Expirés</div>
+          </div>
+          <div class="stat-card gold" style="flex:1;min-width:160px;">
+            <div class="stat-icon">💰</div>
+            <div class="stat-value" id="oa-stat-revenue">0 MAD</div>
+            <div class="stat-label">Revenus totaux</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-header">
+            <span>🏢 Mes Clients GestionPro</span>
+            <button class="btn btn-primary btn-sm" onclick="openOANewTenant()">➕ Nouveau client</button>
+          </div>
+          <div class="card-body" style="padding:12px;">
+            <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+              <input type="text" id="oa-search" placeholder="🔍 Rechercher un client..." oninput="renderOATenants()" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;">
+              <select id="oa-filter" onchange="renderOATenants()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:13px;">
+                <option value="all">Tous les statuts</option>
+                <option value="actif">✅ Actifs</option>
+                <option value="soon">⚠️ Bientôt expirés</option>
+                <option value="expired">❌ Expirés</option>
+              </select>
+            </div>
+            <div id="oa-tenants-list"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="page-docs-admin">
         <div id="docs-admin-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:20px;">
           <div class="card" style="cursor:pointer;transition:all 0.15s;border:1px solid var(--border);" onclick="openDocAdmin('procuration')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
@@ -1767,6 +1825,96 @@
   </div><!-- end main -->
 
 <!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
+
+<!-- ════ MODAL NOUVEAU TENANT ════ -->
+<div class="modal-overlay" id="modal-oa-tenant">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title" id="oa-modal-title">➕ Nouveau client</div>
+    <input type="hidden" id="oa-tenant-id">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Nom du commerce *</label>
+        <input type="text" id="oa-nom" placeholder="Ex: Boutique Karim">
+      </div>
+      <div class="form-group full">
+        <label>Code d'accès * (sans espaces)</label>
+        <input type="text" id="oa-code" placeholder="Ex: karim-casa" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')" style="font-family:'JetBrains Mono',monospace;">
+      </div>
+      <div class="form-group">
+        <label>Plan</label>
+        <select id="oa-plan">
+          <option value="starter">Starter</option>
+          <option value="business">Business</option>
+          <option value="premium">Premium</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Durée</label>
+        <select id="oa-duree">
+          <option value="1">1 mois</option>
+          <option value="3">3 mois</option>
+          <option value="6">6 mois</option>
+          <option value="12">1 an</option>
+          <option value="9999">À vie</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label style="color:var(--accent);font-weight:700;">👤 Compte admin du client</label>
+      </div>
+      <div class="form-group">
+        <label>Email admin *</label>
+        <input type="email" id="oa-admin-email" placeholder="admin@client.ma">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe *</label>
+        <input type="text" id="oa-admin-pwd" placeholder="motdepasse123">
+      </div>
+      <div class="form-group">
+        <label>Montant payé (MAD)</label>
+        <input type="number" id="oa-montant" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input type="text" id="oa-notes" placeholder="Commerce, ville...">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-oa-tenant')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveOATenant()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL RENOUVELLEMENT ════ -->
+<div class="modal-overlay" id="modal-oa-renew">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">🔄 Renouveler licence</div>
+    <input type="hidden" id="oar-tenant-id">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;" id="oar-tenant-name"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Durée à ajouter</label>
+        <select id="oar-duree">
+          <option value="1">+1 mois</option>
+          <option value="3">+3 mois</option>
+          <option value="6">+6 mois</option>
+          <option value="12">+1 an</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Montant payé (MAD)</label>
+        <input type="number" id="oar-montant" placeholder="0">
+      </div>
+    </div>
+    <div id="oar-current-expire" style="font-size:13px;color:var(--text2);background:var(--surface2);padding:10px;border-radius:8px;margin-top:10px;"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-oa-renew')">Annuler</button>
+      <button class="btn btn-primary" onclick="renewOATenant()">✅ Renouveler</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- ═══ MODAL SA — LOCAL ═══ -->
 </div><!-- end app-wrapper -->
 <div class="modal-overlay" id="modal-sa-local">
@@ -2135,6 +2283,96 @@
 </div>
 
 <!-- ═══════════════════════════ MODALS ═══════════════════════════ -->
+
+<!-- ════ MODAL NOUVEAU TENANT ════ -->
+<div class="modal-overlay" id="modal-oa-tenant">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title" id="oa-modal-title">➕ Nouveau client</div>
+    <input type="hidden" id="oa-tenant-id">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Nom du commerce *</label>
+        <input type="text" id="oa-nom" placeholder="Ex: Boutique Karim">
+      </div>
+      <div class="form-group full">
+        <label>Code d'accès * (sans espaces)</label>
+        <input type="text" id="oa-code" placeholder="Ex: karim-casa" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')" style="font-family:'JetBrains Mono',monospace;">
+      </div>
+      <div class="form-group">
+        <label>Plan</label>
+        <select id="oa-plan">
+          <option value="starter">Starter</option>
+          <option value="business">Business</option>
+          <option value="premium">Premium</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Durée</label>
+        <select id="oa-duree">
+          <option value="1">1 mois</option>
+          <option value="3">3 mois</option>
+          <option value="6">6 mois</option>
+          <option value="12">1 an</option>
+          <option value="9999">À vie</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label style="color:var(--accent);font-weight:700;">👤 Compte admin du client</label>
+      </div>
+      <div class="form-group">
+        <label>Email admin *</label>
+        <input type="email" id="oa-admin-email" placeholder="admin@client.ma">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe *</label>
+        <input type="text" id="oa-admin-pwd" placeholder="motdepasse123">
+      </div>
+      <div class="form-group">
+        <label>Montant payé (MAD)</label>
+        <input type="number" id="oa-montant" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <input type="text" id="oa-notes" placeholder="Commerce, ville...">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-oa-tenant')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveOATenant()">💾 Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL RENOUVELLEMENT ════ -->
+<div class="modal-overlay" id="modal-oa-renew">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">🔄 Renouveler licence</div>
+    <input type="hidden" id="oar-tenant-id">
+    <div style="font-size:15px;font-weight:700;margin-bottom:14px;" id="oar-tenant-name"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Durée à ajouter</label>
+        <select id="oar-duree">
+          <option value="1">+1 mois</option>
+          <option value="3">+3 mois</option>
+          <option value="6">+6 mois</option>
+          <option value="12">+1 an</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Montant payé (MAD)</label>
+        <input type="number" id="oar-montant" placeholder="0">
+      </div>
+    </div>
+    <div id="oar-current-expire" style="font-size:13px;color:var(--text2);background:var(--surface2);padding:10px;border-radius:8px;margin-top:10px;"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-oa-renew')">Annuler</button>
+      <button class="btn btn-primary" onclick="renewOATenant()">✅ Renouveler</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- ═══ MODAL LOCAL ═══ -->
 <div class="modal-overlay" id="modal-local">
   <div class="modal" style="max-width:480px;">
@@ -3861,8 +4099,9 @@ async function _doSave() {
   const lid = getLocalId();
   try {
     // ── Produits ──────────────────────────────────────────────
+    const tid = GP_TENANT?.id || null;
     await sbSync('gp_products', products.map(p => ({
-      id: p.id, local_id: lid || p.local_id,
+      id: p.id, tenant_id: tid, local_id: lid || p.local_id,
       name: p.name, category: p.category, code: p.code || null,
       type: p.type || 'unite', price: p.price, cost: p.cost || 0,
       stock: p.stock, min_stock: p.minStock || 5,
@@ -3873,7 +4112,7 @@ async function _doSave() {
 
     // ── Clients ───────────────────────────────────────────────
     await sbSync('gp_clients', clients.map(c => ({
-      id: c.id, local_id: lid || c.local_id,
+      id: c.id, tenant_id: tid, local_id: lid || c.local_id,
       name: c.name, phone: c.phone || null, email: c.email || null,
       city: c.city || null, address: c.address || null,
       notes: c.notes || null,
@@ -3882,7 +4121,7 @@ async function _doSave() {
 
     // ── Ventes ────────────────────────────────────────────────
     await sbSync('gp_sales', sales.map(s => ({
-      id: s.id, local_id: lid || s.local_id,
+      id: s.id, tenant_id: tid, local_id: lid || s.local_id,
       client_id: s.clientId || null, client_name: s.clientName || null,
       date: s.date, items: s.items || [],
       total: s.total, total_ht: s.totalHT || s.total,
@@ -3892,7 +4131,7 @@ async function _doSave() {
 
     // ── Caisse ────────────────────────────────────────────────
     await sbSync('gp_caisse_ops', caisseOps.map(o => ({
-      id: o.id, local_id: lid || o.local_id,
+      id: o.id, tenant_id: tid, local_id: lid || o.local_id,
       type: o.type, amount: o.amount,
       description: o.label || o.description || null,
       payment: o.payment || null,
@@ -3901,7 +4140,7 @@ async function _doSave() {
 
     // ── Conteneurs ────────────────────────────────────────────
     await sbSync('gp_conteneurs', conteneurs.map(c => ({
-      id: c.id, local_id: lid || c.local_id,
+      id: c.id, tenant_id: tid, local_id: lid || c.local_id,
       numero: c.numero, fournisseur: c.fournisseur || null,
       pays: c.pays || null, type: c.type || null,
       date_arrivee: c.dateArrivee || null, date_limite: c.dateLimite || null,
@@ -3919,7 +4158,7 @@ async function _doSave() {
 
     // ── Ordres ────────────────────────────────────────────────
     await sbSync('gp_ordres', ordres.map(o => ({
-      id: o.id, local_id: lid || o.local_id,
+      id: o.id, tenant_id: tid, local_id: lid || o.local_id,
       conteneur_id: o.conteneurId || null,
       numero: o.numero || null, date: o.date || null,
       fournisseur: o.fournisseur || null,
@@ -3929,7 +4168,7 @@ async function _doSave() {
 
     // ── Employés ──────────────────────────────────────────────
     await sbSync('gp_employes', employes.map(e => ({
-      id: e.id, local_id: lid || e.local_id,
+      id: e.id, tenant_id: tid, local_id: lid || e.local_id,
       name: e.name, prenom: e.prenom || null,
       poste: e.poste || null, dept: e.dept || null,
       tel: e.tel || null, email: e.email || null,
@@ -3942,7 +4181,7 @@ async function _doSave() {
 
     // ── Congés ────────────────────────────────────────────────
     await sbSync('gp_conges', conges.map(c => ({
-      id: c.id, local_id: lid || c.local_id,
+      id: c.id, tenant_id: tid, local_id: lid || c.local_id,
       emp_id: c.empId || null, type: c.type || 'conge_annuel',
       debut: c.debut, fin: c.fin, jours: c.jours || 1,
       motif: c.motif || null, statut: c.statut || 'pending'
@@ -3988,10 +4227,13 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const navItems = document.querySelectorAll('.nav-item');
-  const pages = ['dashboard','caisse','conteneurs','commandes','docscont','fonds','stock','locaux','clients','alerts','settings','superadmin','employes','conges','livraisons','docs-rh','docs-admin'];
+  const pages = ['dashboard','caisse','conteneurs','commandes','docscont','fonds','stock','locaux','clients','alerts','settings','superadmin','employes','conges','livraisons','docs-rh','docs-admin','owner-admin'];
   navItems[pages.indexOf(page)]?.classList.add('active');
 
-  const titles = { dashboard:'Tableau de bord', caisse:'Caisse & Ventes', conteneurs:'Gestion Conteneurs', commandes:'Ordres & Ventes', docscont:'Documents Conteneurs', fonds:'Fonds de Caisse', stock:'Gestion du Stock', locaux:'Gestion des Locaux / Zones', clients:'Gestion Clients', alerts:'Alertes & Notifications', settings:'Paramètres', superadmin:'👑 Super Admin — Panneau Central', employes:'👨‍💼 Gestion des Employés', conges:'🏖️ Gestion des Congés', livraisons:'🚚 Bons de Livraison', 'docs-rh':'📋 Documents RH', 'docs-admin':'🏢 Documents Administratifs' };
+  // Charger données owner-admin si nécessaire
+  if (page === 'owner-admin' && isOwner()) { loadOAData(); }
+
+  const titles = { dashboard:'Tableau de bord', caisse:'Caisse & Ventes', conteneurs:'Gestion Conteneurs', commandes:'Ordres & Ventes', docscont:'Documents Conteneurs', fonds:'Fonds de Caisse', stock:'Gestion du Stock', locaux:'Gestion des Locaux / Zones', clients:'Gestion Clients', alerts:'Alertes & Notifications', settings:'Paramètres', superadmin:'👑 Super Admin — Panneau Central', 'owner-admin':'🏢 Mes Clients GestionPro', employes:'👨‍💼 Gestion des Employés', conges:'🏖️ Gestion des Congés', livraisons:'🚚 Bons de Livraison', 'docs-rh':'📋 Documents RH', 'docs-admin':'🏢 Documents Administratifs' };
   document.getElementById('page-title').textContent = titles[page] || page;
 
   // Actions topbar filtrées par RBAC
@@ -6154,6 +6396,272 @@ function renderDashboard() {
       </div>
     `).join('');
   }
+}
+
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║         OWNER ADMIN — GESTION CLIENTS GESTIONPRO            ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+let OA_TENANTS = []; // tous les tenants (clients)
+let OA_PAYMENTS = []; // historique paiements
+
+// Vérifier si l'utilisateur est le owner (propriétaire de GestionPro)
+function isOwner() {
+  // Le owner est le SA dont le tenant a le code 'demo' (ou défini dans une var)
+  return isSuperAdmin() && (GP_TENANT?.code === 'demo' || GP_TENANT?.is_owner === true);
+}
+
+// Charger tous les tenants depuis Supabase
+async function loadOAData() {
+  try {
+    const { data: tenants } = await sb.from('gp_tenants').select('*').order('created_at', { ascending: false });
+    OA_TENANTS = tenants || [];
+
+    // Charger paiements si table existe
+    try {
+      const { data: pays } = await sb.from('gp_payments').select('*').order('date_paiement', { ascending: false });
+      OA_PAYMENTS = pays || [];
+    } catch(e) { OA_PAYMENTS = []; }
+
+    renderOAStats();
+    renderOATenants();
+  } catch(e) {
+    console.warn('[OA] loadOAData:', e.message);
+  }
+}
+
+function renderOAStats() {
+  const now = new Date();
+  const in5days = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+  const total   = OA_TENANTS.length;
+  const actifs  = OA_TENANTS.filter(t => t.actif && (!t.expire_at || new Date(t.expire_at) > now)).length;
+  const soon    = OA_TENANTS.filter(t => t.actif && t.expire_at && new Date(t.expire_at) > now && new Date(t.expire_at) <= in5days).length;
+  const expired = OA_TENANTS.filter(t => !t.actif || (t.expire_at && new Date(t.expire_at) < now)).length;
+  const revenue = OA_PAYMENTS.reduce((s, p) => s + (p.montant || 0), 0);
+
+  const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+  el('oa-stat-total', total);
+  el('oa-stat-actif', actifs);
+  el('oa-stat-soon', soon);
+  el('oa-stat-expired', expired);
+  el('oa-stat-revenue', fmt(revenue));
+}
+
+function renderOATenants() {
+  const q      = (document.getElementById('oa-search')?.value || '').toLowerCase();
+  const filter = document.getElementById('oa-filter')?.value || 'all';
+  const now    = new Date();
+  const in5d   = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+  let list = OA_TENANTS.filter(t => {
+    if (q && !t.nom.toLowerCase().includes(q) && !t.code.includes(q)) return false;
+    if (filter === 'actif')   return t.actif && (!t.expire_at || new Date(t.expire_at) > now);
+    if (filter === 'soon')    return t.actif && t.expire_at && new Date(t.expire_at) > now && new Date(t.expire_at) <= in5d;
+    if (filter === 'expired') return !t.actif || (t.expire_at && new Date(t.expire_at) < now);
+    return true;
+  });
+
+  const el = document.getElementById('oa-tenants-list');
+  if (!el) return;
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><div class="emoji">🏢</div><p>Aucun client trouvé</p></div>`;
+    return;
+  }
+
+  el.innerHTML = list.map(t => {
+    const expired  = t.expire_at && new Date(t.expire_at) < now;
+    const soon     = !expired && t.expire_at && new Date(t.expire_at) <= in5d;
+    const actif    = t.actif && !expired;
+    const statusIcon  = expired ? '❌' : soon ? '⚠️' : '✅';
+    const statusColor = expired ? 'var(--red)' : soon ? 'var(--gold)' : 'var(--accent)';
+    const statusLabel = expired ? 'Expiré' : soon ? 'Bientôt' : 'Actif';
+    const expireStr = t.expire_at
+      ? (parseInt(new Date(t.expire_at).getFullYear()) > 2090 ? '♾️ À vie' : new Date(t.expire_at).toLocaleDateString('fr-FR'))
+      : '—';
+    const pays = OA_PAYMENTS.filter(p => p.tenant_id === t.id);
+    const totalPay = pays.reduce((s,p) => s + (p.montant||0), 0);
+    const planBadge = {starter:'🥉',business:'🥈',premium:'🥇'}[t.plan] || '📦';
+
+    return `<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border-radius:10px;margin-bottom:8px;border:1px solid ${expired?'rgba(224,49,49,0.2)':soon?'rgba(245,166,35,0.2)':'var(--border)'};flex-wrap:wrap;">
+      <div style="width:40px;height:40px;border-radius:10px;background:rgba(0,212,170,0.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${planBadge}</div>
+      <div style="flex:1;min-width:150px;">
+        <div style="font-weight:700;font-size:14px;">${t.nom}</div>
+        <div style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;">code: ${t.code}</div>
+      </div>
+      <div style="text-align:center;min-width:80px;">
+        <div style="font-size:11px;color:var(--text2);">Plan</div>
+        <div style="font-size:13px;font-weight:700;text-transform:capitalize;">${t.plan || 'starter'}</div>
+      </div>
+      <div style="text-align:center;min-width:80px;">
+        <div style="font-size:11px;color:var(--text2);">Expire</div>
+        <div style="font-size:13px;font-weight:700;">${expireStr}</div>
+      </div>
+      <div style="text-align:center;min-width:80px;">
+        <div style="font-size:11px;color:var(--text2);">Payé</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);">${totalPay > 0 ? fmt(totalPay) : '—'}</div>
+      </div>
+      <div style="text-align:center;min-width:70px;">
+        <span style="color:${statusColor};font-weight:700;font-size:13px;">${statusIcon} ${statusLabel}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="openOARenew('${t.id}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(0,212,170,0.3);background:rgba(0,212,170,0.08);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">🔄 Renouveler</button>
+        <button onclick="openOAWA('${t.code}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.08);color:#25D366;font-size:12px;font-weight:700;cursor:pointer;">💬 WA</button>
+        <button onclick="openOAEdit('${t.id}')" style="padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;">✏️</button>
+        <button onclick="toggleOATenant('${t.id}',${actif})" style="padding:6px 12px;border-radius:7px;border:1px solid ${actif?'rgba(224,49,49,0.3)':'rgba(0,212,170,0.3)'};background:transparent;color:${actif?'var(--red)':'var(--accent)'};font-size:12px;cursor:pointer;">${actif?'🚫 Bloquer':'✅ Activer'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openOANewTenant() {
+  document.getElementById('oa-tenant-id').value = '';
+  document.getElementById('oa-modal-title').textContent = '➕ Nouveau client';
+  ['oa-nom','oa-code','oa-admin-email','oa-admin-pwd','oa-notes'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
+  document.getElementById('oa-montant').value = '0';
+  document.getElementById('oa-plan').value = 'starter';
+  document.getElementById('oa-duree').value = '1';
+  openModal('modal-oa-tenant');
+}
+
+function openOAEdit(tenantId) {
+  const t = OA_TENANTS.find(x => x.id === tenantId);
+  if (!t) return;
+  document.getElementById('oa-tenant-id').value = t.id;
+  document.getElementById('oa-modal-title').textContent = '✏️ Modifier client';
+  document.getElementById('oa-nom').value = t.nom || '';
+  document.getElementById('oa-code').value = t.code || '';
+  document.getElementById('oa-plan').value = t.plan || 'starter';
+  document.getElementById('oa-notes').value = t.notes || '';
+  document.getElementById('oa-admin-email').value = '';
+  document.getElementById('oa-admin-pwd').value = '';
+  document.getElementById('oa-montant').value = '0';
+  openModal('modal-oa-tenant');
+}
+
+async function saveOATenant() {
+  const id     = document.getElementById('oa-tenant-id').value;
+  const nom    = document.getElementById('oa-nom').value.trim();
+  const code   = document.getElementById('oa-code').value.trim();
+  const plan   = document.getElementById('oa-plan').value;
+  const duree  = parseInt(document.getElementById('oa-duree').value) || 1;
+  const email  = document.getElementById('oa-admin-email').value.trim();
+  const pwd    = document.getElementById('oa-admin-pwd').value.trim();
+  const montant = parseFloat(document.getElementById('oa-montant').value) || 0;
+  const notes  = document.getElementById('oa-notes').value.trim();
+
+  if (!nom || !code) { toast('Nom et code obligatoires', 'error'); return; }
+
+  const expireAt = duree === 9999
+    ? new Date('2099-12-31').toISOString()
+    : new Date(Date.now() + duree * 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    let tenantId = id;
+
+    if (id) {
+      // Modifier tenant existant
+      const { error } = await sb.from('gp_tenants').update({ nom, plan, expire_at: expireAt, notes }).eq('id', id);
+      if (error) throw error;
+      toast('Client mis à jour ✅');
+    } else {
+      // Créer nouveau tenant
+      const { data: newTenant, error } = await sb.from('gp_tenants').insert({
+        nom, code, actif: true, plan, expire_at: expireAt, notes
+      }).select().single();
+      if (error) throw error;
+      tenantId = newTenant.id;
+
+      // Créer le super admin du client
+      if (email && pwd) {
+        const { error: ue } = await sb.from('gp_users').insert({
+          id: 'U' + Date.now(),
+          tenant_id: tenantId,
+          nom: nom, email, password: pwd,
+          role: 'super_admin', actif: true
+        });
+        if (ue) console.warn('User creation error:', ue.message);
+      }
+      toast(`Client "${nom}" créé ✅`);
+    }
+
+    // Enregistrer paiement si montant > 0
+    if (montant > 0) {
+      await sb.from('gp_payments').insert({
+        tenant_id: tenantId, montant,
+        methode: 'whatsapp', notes: `Création/renouvellement ${plan}`
+      });
+    }
+
+    closeModal('modal-oa-tenant');
+    await loadOAData();
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  }
+}
+
+function openOARenew(tenantId) {
+  const t = OA_TENANTS.find(x => x.id === tenantId);
+  if (!t) return;
+  document.getElementById('oar-tenant-id').value = t.id;
+  document.getElementById('oar-tenant-name').textContent = '🏢 ' + t.nom;
+  const expStr = t.expire_at
+    ? (new Date(t.expire_at) < new Date() ? '❌ Expiré depuis ' : '✅ Expire le ') + new Date(t.expire_at).toLocaleDateString('fr-FR')
+    : 'Pas de date définie';
+  document.getElementById('oar-current-expire').textContent = expStr;
+  document.getElementById('oar-montant').value = '';
+  openModal('modal-oa-renew');
+}
+
+async function renewOATenant() {
+  const id     = document.getElementById('oar-tenant-id').value;
+  const duree  = parseInt(document.getElementById('oar-duree').value) || 1;
+  const montant = parseFloat(document.getElementById('oar-montant').value) || 0;
+
+  const t = OA_TENANTS.find(x => x.id === id);
+  if (!t) return;
+
+  // Calculer nouvelle date : depuis maintenant ou depuis expiration actuelle (la plus grande)
+  const base = t.expire_at && new Date(t.expire_at) > new Date() ? new Date(t.expire_at) : new Date();
+  const newExpire = new Date(base.getTime() + duree * 30 * 24 * 60 * 60 * 1000).toISOString();
+
+  try {
+    const { error } = await sb.from('gp_tenants').update({ expire_at: newExpire, actif: true }).eq('id', id);
+    if (error) throw error;
+
+    if (montant > 0) {
+      await sb.from('gp_payments').insert({
+        tenant_id: id, montant, methode: 'whatsapp',
+        notes: `Renouvellement +${duree} mois`
+      });
+    }
+
+    toast(`Licence renouvelée jusqu'au ${new Date(newExpire).toLocaleDateString('fr-FR')} ✅`);
+    closeModal('modal-oa-renew');
+    await loadOAData();
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  }
+}
+
+async function toggleOATenant(tenantId, currentActif) {
+  const action = currentActif ? 'bloquer' : 'activer';
+  if (!confirm(`Voulez-vous ${action} ce client ?`)) return;
+  try {
+    const { error } = await sb.from('gp_tenants').update({ actif: !currentActif }).eq('id', tenantId);
+    if (error) throw error;
+    toast(currentActif ? '🚫 Client bloqué' : '✅ Client activé');
+    await loadOAData();
+  } catch(e) {
+    toast('Erreur: ' + e.message, 'error');
+  }
+}
+
+function openOAWA(code) {
+  const msg = `Bonjour ! Voici vos accès GestionPro 🎉%0A%0A🔑 Code d'accès : *${code}*%0A📱 Lien : gestionpro.vercel.app%0A%0AConnectez-vous avec votre email et mot de passe fournis.%0A%0A💬 Pour toute question, contactez-nous sur WhatsApp.`;
+  window.open(`https://wa.me/212664783510?text=${msg}`, '_blank');
 }
 
 // ─── INIT ───
@@ -8770,7 +9278,8 @@ const DEFAULT_ROLES = {
 // ║                      AUTH STATE                              ║
 // ╚══════════════════════════════════════════════════════════════╝
 let GP_USER   = null;   // utilisateur connecté
-let GP_ROLES  = {};     // rôles chargés depuis localStorage
+let GP_TENANT = null;   // tenant actif (client)
+let GP_ROLES  = {};     // rôles chargés depuis Supabase
 let GP_LOCAUX_ALL = []; // tous les locaux (pour super admin)
 let GP_USERS_ALL  = []; // tous les utilisateurs (pour super admin)
 let SA_CURRENT_TAB = 'dash';
@@ -8782,6 +9291,10 @@ function isSuperAdmin() {
 }
 
 function applyNavPermissions() {
+  // Afficher nav owner-admin uniquement pour le owner (Zack)
+  const ownerNav = document.getElementById('nav-owner-admin');
+  if (ownerNav) ownerNav.style.display = isOwner() ? '' : 'none';
+
   if (isSuperAdmin()) {
     // SA voit tout
     document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => el.style.display = '');
@@ -8913,7 +9426,10 @@ function getAllRoles() {
 // ─── CHARGEMENT LOCAUX & USERS (pour super admin) ─────────────
 async function loadSAData() {
   try {
-    const { data: locs } = await sb.from('gp_locaux').select('*').order('nom');
+    const tid = GP_TENANT?.id || null;
+    const locsQ = tid ? sb.from('gp_locaux').select('*').eq('tenant_id', tid).order('nom')
+                      : sb.from('gp_locaux').select('*').order('nom');
+    const { data: locs } = await locsQ;
     GP_LOCAUX_ALL = (locs || []).map(l => ({
       id: l.id, nom: l.nom,
       description: l.description || '', desc: l.description || '',
@@ -8924,7 +9440,9 @@ async function loadSAData() {
     }));
     locaux = GP_LOCAUX_ALL;
 
-    const { data: usrs } = await sb.from('gp_users').select('*').order('nom');
+    const usrsQ = tid ? sb.from('gp_users').select('*').eq('tenant_id', tid).order('nom')
+                      : sb.from('gp_users').select('*').order('nom');
+    const { data: usrs } = await usrsQ;
     GP_USERS_ALL = (usrs || []).map(u => ({
       id: u.id, nom: u.nom, prenom: u.prenom || '',
       email: u.email, password: u.password,
@@ -8960,32 +9478,55 @@ document.getElementById('l-pwd').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
-function fillLogin(email, pwd) {
+function fillLogin(email, pwd, code) { const c=document.getElementById('l-code'); if(c&&code) c.value=code;
   document.getElementById('l-email').value = email;
   document.getElementById('l-pwd').value = pwd;
   doLogin();
 }
 
 async function doLogin() {
+  const code  = (document.getElementById('l-code')?.value || '').trim().toLowerCase();
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const pwd   = document.getElementById('l-pwd').value;
   const btn   = document.getElementById('l-btn');
-  const err = document.getElementById('l-err');
+  const err   = document.getElementById('l-err');
   err.style.display = 'none';
 
+  if (!code) { showLoginErr("Code d'accès requis"); return; }
   if (!email || !pwd) { showLoginErr('Email et mot de passe requis'); return; }
 
   btn.disabled = true;
   btn.textContent = '⏳ Connexion...';
 
   try {
-    // Vérifier dans Supabase gp_users
+    // ── 1. Vérifier le tenant (code d'accès) ──
+    const { data: tenantData, error: tenantErr } = await sb
+      .from('gp_tenants')
+      .select('*')
+      .eq('code', code)
+      .eq('actif', true)
+      .limit(1);
+
+    if (tenantErr) throw tenantErr;
+    const tenant = tenantData && tenantData.length > 0 ? tenantData[0] : null;
+    if (!tenant) throw new Error("Code d'accès invalide ou inactif");
+
+    // ── 2. Vérifier expiration licence ──
+    if (tenant.expire_at && new Date(tenant.expire_at) < new Date()) {
+      showLicenceExpired(tenant);
+      btn.disabled = false;
+      btn.textContent = 'Se connecter';
+      return;
+    }
+
+    // ── 3. Vérifier utilisateur dans ce tenant ──
     const { data, error } = await sb
       .from('gp_users')
       .select('*')
       .eq('email', email)
       .eq('password', pwd)
       .eq('actif', true)
+      .eq('tenant_id', tenant.id)
       .limit(1);
 
     if (error) throw error;
@@ -8993,12 +9534,9 @@ async function doLogin() {
     const foundUser = data && data.length > 0 ? data[0] : null;
     if (!foundUser) throw new Error('Email ou mot de passe incorrect');
 
-    GP_USER = foundUser;
-    // Normaliser les champs pour compatibilité avec le reste de l'app
-    if (!GP_USER.local_nom && GP_USER.local_id) {
-      // sera chargé dans loadSAData
-    }
-    localStorage.setItem('gp_session', JSON.stringify(GP_USER));
+    GP_USER   = foundUser;
+    GP_TENANT = tenant;
+    localStorage.setItem('gp_session', JSON.stringify({ user: GP_USER, tenant: GP_TENANT }));
     await startApp();
   } catch(e) {
     showLoginErr(e.message);
@@ -9006,6 +9544,24 @@ async function doLogin() {
     btn.disabled = false;
     btn.textContent = 'Se connecter';
   }
+}
+
+function showLicenceExpired(tenant) {
+  const err = document.getElementById('l-err');
+  err.style.display = 'block';
+  err.style.background = 'rgba(224,49,49,0.1)';
+  err.style.border = '1px solid rgba(224,49,49,0.3)';
+  err.style.padding = '16px';
+  err.style.borderRadius = '10px';
+  err.innerHTML = `
+    <div style="font-weight:700;color:var(--red);margin-bottom:6px;">⚠️ Licence expirée</div>
+    <div style="font-size:13px;color:var(--text2);">Votre abonnement GestionPro a expiré.</div>
+    <a href="https://wa.me/212664783510?text=Bonjour%2C%20je%20veux%20renouveler%20ma%20licence%20GestionPro%20(code%3A%20${tenant.code})" 
+       target="_blank"
+       style="display:inline-flex;align-items:center;gap:8px;margin-top:10px;background:#25D366;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">
+      💬 Renouveler sur WhatsApp
+    </a>
+  `;
 }
 
 function showLoginErr(msg) {
@@ -9087,6 +9643,9 @@ async function startApp() {
   updateEmployeSelects();
   updateSALocalSwitcher();
   applyNavPermissions(); // cacher les sections selon le rôle
+  // Afficher nom du tenant
+  const tenantNameEl = document.getElementById('sidebar-tenant-name');
+  if (tenantNameEl && GP_TENANT) tenantNameEl.textContent = GP_TENANT.nom;
   const pending = (conges||[]).filter(c=>c.statut==='pending').length;
   const badge = document.getElementById('badge-conges');
   if(badge){ badge.textContent=pending; badge.style.display=pending>0?'':'none'; }
@@ -9235,13 +9794,19 @@ function applyRBACUI() {
 // ─── DONNÉES SCOPÉES PAR LOCAL ─────────────────────────────────
 async function loadUserData() {
   const lid = getLocalId();
-  // Produits : charger TOUS les locaux (pour visibilité cross-local et transferts)
-  // Autres tables : filtrées par local
-  const filter = (q) => lid ? q.eq('local_id', lid) : q;
+  const tid = GP_TENANT?.id || null;
+  // Filtre tenant_id (isolation données) + local_id si non SA
+  const filter = (q) => {
+    if (tid) q = q.eq('tenant_id', tid);
+    if (lid) q = q.eq('local_id', lid);
+    return q;
+  };
 
   try {
-    // ── Produits — TOUS les locaux visibles ───────────────────
-    const { data: prods } = await sb.from('gp_products').select('*').order('name');
+    // ── Produits — TOUS les locaux du tenant ───────────────────
+    const prodsQ = tid ? sb.from('gp_products').select('*').eq('tenant_id', tid).order('name')
+                       : sb.from('gp_products').select('*').order('name');
+    const { data: prods } = await prodsQ;
     products = (prods || []).map(p => ({
       id: p.id, local_id: p.local_id,
       name: p.name, category: p.category || 'Général',
@@ -10804,15 +11369,32 @@ function deleteSARole(key) {
   const saved = localStorage.getItem('gp_session');
   if (saved) {
     try {
-      const savedUser = JSON.parse(saved);
+      const _parsed = JSON.parse(saved);
+      // Support nouveau format {user, tenant} et ancien format (juste user)
+      const savedUser   = (_parsed.user && _parsed.tenant) ? _parsed.user   : _parsed;
+      const savedTenant = (_parsed.user && _parsed.tenant) ? _parsed.tenant : null;
+
       const { data } = await sb
         .from('gp_users')
         .select('*')
         .eq('id', savedUser.id)
         .eq('actif', true)
         .limit(1);
+
       if (data && data.length > 0) {
         GP_USER = data[0];
+        // Restaurer tenant depuis session ou recharger depuis Supabase
+        if (savedTenant) {
+          GP_TENANT = savedTenant;
+          // Vérifier expiration
+          if (GP_TENANT.expire_at && new Date(GP_TENANT.expire_at) < new Date()) {
+            localStorage.removeItem('gp_session');
+            return; // laisse l'écran de login s'afficher
+          }
+        } else if (GP_USER.tenant_id) {
+          const { data: td } = await sb.from('gp_tenants').select('*').eq('id', GP_USER.tenant_id).limit(1);
+          GP_TENANT = td?.[0] || null;
+        }
         await startApp();
         return;
       }
