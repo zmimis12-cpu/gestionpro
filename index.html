@@ -6410,8 +6410,9 @@ let OA_PAYMENTS = []; // historique paiements
 
 // Vérifier si l'utilisateur est le owner (propriétaire de GestionPro)
 function isOwner() {
-  // Le owner est le SA dont le tenant a le code 'demo' (ou défini dans une var)
-  return isSuperAdmin() && (GP_TENANT?.code === 'demo' || GP_TENANT?.is_owner === true);
+  // Seul le tenant marqué is_owner=true dans Supabase peut voir "Mes Clients"
+  // Double vérification : super_admin ET is_owner depuis DB
+  return isSuperAdmin() && GP_TENANT?.is_owner === true;
 }
 
 // Charger tous les tenants depuis Supabase
