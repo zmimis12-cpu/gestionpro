@@ -928,7 +928,7 @@
       <div class="nav-item" id="nav-superadmin" style="display:none;border-top:1px solid rgba(255,209,102,0.3);margin-top:4px;padding-top:8px;" onclick="navigate('superadmin')">
         <span class="icon">👑</span> <span style="color:var(--gold);">Super Admin</span>
       </div>
-      <div class="nav-item" id="nav-owner-admin" style="display:none;border-top:1px solid rgba(0,200,150,0.3);margin-top:4px;padding-top:8px;" onclick="navigate('owner-admin')" data-nav-module="owner-admin">
+      <div class="nav-item" id="nav-owner-admin" style="display:none;border-top:1px solid rgba(0,200,150,0.3);margin-top:4px;padding-top:8px;" onclick="navigate('owner-admin')">
         <span class="icon">🏢</span> <span style="color:var(--accent);">Mes Clients</span>
       </div>
       <div style="height:1px;background:var(--border);margin:6px 0;"></div>
@@ -4233,7 +4233,10 @@ function navigate(page) {
   navItems[pages.indexOf(page)]?.classList.add('active');
 
   // Charger données owner-admin si nécessaire
-  if (page === 'owner-admin' && isOwner()) { loadOAData(); }
+  if (page === 'owner-admin') {
+    if (!isOwner()) { navigate('dashboard'); return; } // BLOQUER accès non-owner
+    loadOAData();
+  }
 
   const titles = { dashboard:'Tableau de bord', caisse:'Caisse & Ventes', conteneurs:'Gestion Conteneurs', commandes:'Ordres & Ventes', docscont:'Documents Conteneurs', fonds:'Fonds de Caisse', stock:'Gestion du Stock', locaux:'Gestion des Locaux / Zones', clients:'Gestion Clients', alerts:'Alertes & Notifications', settings:'Paramètres', superadmin:'👑 Super Admin — Panneau Central', 'owner-admin':'🏢 Mes Clients GestionPro', employes:'👨‍💼 Gestion des Employés', conges:'🏖️ Gestion des Congés', livraisons:'🚚 Bons de Livraison', 'docs-rh':'📋 Documents RH', 'docs-admin':'🏢 Documents Administratifs' };
   document.getElementById('page-title').textContent = titles[page] || page;
@@ -6401,6 +6404,37 @@ function renderDashboard() {
 }
 
 
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║              GESTION DES PLANS (Starter/Business/Premium)   ║
+// ╚══════════════════════════════════════════════════════════════╝
+const PLAN_MODULES = {
+  starter: [
+    'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings'
+  ],
+  business: [
+    'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings',
+    'locaux', 'employes', 'conges', 'fonds', 'commandes'
+  ],
+  premium: [
+    'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings',
+    'locaux', 'employes', 'conges', 'fonds', 'commandes',
+    'conteneurs', 'docscont', 'livraisons', 'docs-rh', 'docs-admin', 'superadmin'
+  ]
+};
+
+function getPlanModules() {
+  const plan = GP_TENANT?.plan || 'starter';
+  return PLAN_MODULES[plan] || PLAN_MODULES.starter;
+}
+
+function hasModuleAccess(module) {
+  // Owner voit tout
+  if (isOwner()) return true;
+  // Vérifier si le module est dans le plan du tenant
+  return getPlanModules().includes(module);
+}
+
 // ╔══════════════════════════════════════════════════════════════╗
 // ║         OWNER ADMIN — GESTION CLIENTS GESTIONPRO            ║
 // ╚══════════════════════════════════════════════════════════════╝
@@ -6477,7 +6511,7 @@ function renderOATenants() {
   el.innerHTML = list.map(t => {
     const expired  = t.expire_at && new Date(t.expire_at) < now;
     const soon     = !expired && t.expire_at && new Date(t.expire_at) <= in5d;
-    const actif    = t.actif && !expired;
+    const actif    = t.actif === true && !expired;
     const statusIcon  = expired ? '❌' : soon ? '⚠️' : '✅';
     const statusColor = expired ? 'var(--red)' : soon ? 'var(--gold)' : 'var(--accent)';
     const statusLabel = expired ? 'Expiré' : soon ? 'Bientôt' : 'Actif';
@@ -6513,7 +6547,8 @@ function renderOATenants() {
         <button onclick="openOARenew('${t.id}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(0,212,170,0.3);background:rgba(0,212,170,0.08);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">🔄 Renouveler</button>
         <button onclick="openOAWA('${t.code}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(37,211,102,0.3);background:rgba(37,211,102,0.08);color:#25D366;font-size:12px;font-weight:700;cursor:pointer;">💬 WA</button>
         <button onclick="openOAEdit('${t.id}')" style="padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;">✏️</button>
-        <button onclick="toggleOATenant('${t.id}',${actif})" style="padding:6px 12px;border-radius:7px;border:1px solid ${actif?'rgba(224,49,49,0.3)':'rgba(0,212,170,0.3)'};background:transparent;color:${actif?'var(--red)':'var(--accent)'};font-size:12px;cursor:pointer;">${actif?'🚫 Bloquer':'✅ Activer'}</button>
+        <button onclick="toggleOATenant('${t.id}',${actif?'true':'false'})" style="padding:6px 12px;border-radius:7px;border:1px solid ${actif?'rgba(224,49,49,0.3)':'rgba(0,212,170,0.3)'};background:transparent;color:${actif?'var(--red)':'var(--accent)'};font-size:12px;cursor:pointer;">${actif?'🚫 Bloquer':'✅ Activer'}</button>
+        <button onclick="deleteOATenant('${t.id}','${t.nom}')" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(224,49,49,0.3);background:transparent;color:var(--red);font-size:12px;cursor:pointer;">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -6619,7 +6654,8 @@ function openOARenew(tenantId) {
 }
 
 async function renewOATenant() {
-  const id     = document.getElementById('oar-tenant-id').value;
+  const id = document.getElementById('oar-tenant-id')?.value?.trim();
+  if (!id) { toast('Erreur: tenant introuvable', 'error'); return; }
   const duree  = parseInt(document.getElementById('oar-duree').value) || 1;
   const montant = parseFloat(document.getElementById('oar-montant').value) || 0;
 
@@ -6650,15 +6686,50 @@ async function renewOATenant() {
 }
 
 async function toggleOATenant(tenantId, currentActif) {
-  const action = currentActif ? 'bloquer' : 'activer';
+  // Normaliser en booléen (peut arriver comme string 'true'/'false')
+  const isActif = currentActif === true || currentActif === 'true';
+  const action = isActif ? 'bloquer' : 'activer';
   if (!confirm(`Voulez-vous ${action} ce client ?`)) return;
   try {
-    const { error } = await sb.from('gp_tenants').update({ actif: !currentActif }).eq('id', tenantId);
+    const newActif = !isActif;
+    const { error } = await sb.from('gp_tenants')
+      .update({ actif: newActif })
+      .eq('id', tenantId);
     if (error) throw error;
-    toast(currentActif ? '🚫 Client bloqué' : '✅ Client activé');
-    await loadOAData();
+    // Mettre à jour localement sans recharger
+    const idx = OA_TENANTS.findIndex(t => t.id === tenantId);
+    if (idx >= 0) OA_TENANTS[idx].actif = newActif;
+    toast(isActif ? '🚫 Client bloqué' : '✅ Client activé');
+    renderOAStats();
+    renderOATenants();
   } catch(e) {
     toast('Erreur: ' + e.message, 'error');
+  }
+}
+
+async function deleteOATenant(tenantId, nom) {
+  if (!confirm(`⚠️ Supprimer définitivement "${nom}" et toutes ses données ?
+
+Cette action est irréversible !`)) return;
+  if (!confirm(`Confirmer la suppression de "${nom}" ?`)) return;
+  try {
+    // Supprimer les données du tenant
+    const tables = ['gp_products','gp_sales','gp_clients','gp_employes','gp_caisse_ops',
+      'gp_conteneurs','gp_ordres','gp_livraisons','gp_conges','gp_docs_rh','gp_locaux','gp_payments'];
+    for (const tbl of tables) {
+      try { await sb.from(tbl).delete().eq('tenant_id', tenantId); } catch(e) {}
+    }
+    // Supprimer les users du tenant
+    await sb.from('gp_users').delete().eq('tenant_id', tenantId);
+    // Supprimer le tenant
+    const { error } = await sb.from('gp_tenants').delete().eq('id', tenantId);
+    if (error) throw error;
+    OA_TENANTS = OA_TENANTS.filter(t => t.id !== tenantId);
+    toast(`🗑️ Client "${nom}" supprimé`);
+    renderOAStats();
+    renderOATenants();
+  } catch(e) {
+    toast('Erreur suppression: ' + e.message, 'error');
   }
 }
 
@@ -9294,20 +9365,29 @@ function isSuperAdmin() {
 }
 
 function applyNavPermissions() {
-  // Afficher nav owner-admin uniquement pour le owner (Zack)
-  const ownerNav = document.getElementById('nav-owner-admin');
-  if (ownerNav) ownerNav.style.display = isOwner() ? '' : 'none';
-
   if (isSuperAdmin()) {
-    // SA voit tout
-    document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => el.style.display = '');
-    return;
+    // SA voit les modules autorisés par son PLAN
+    document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => {
+      const mod = el.dataset.navModule;
+      if (mod === 'owner-admin') return; // géré séparément
+      el.style.display = hasModuleAccess(mod) ? '' : 'none';
+    });
+  } else {
+    // User normal : plan + permissions rôle
+    document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => {
+      const mod = el.dataset.navModule;
+      if (mod === 'owner-admin') return; // géré séparément
+      const inPlan = hasModuleAccess(mod);
+      const canRead = hasPermission(mod, 'read');
+      el.style.display = (inPlan && canRead) ? '' : 'none';
+    });
   }
-  document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => {
-    const module = el.dataset.navModule;
-    const canRead = hasPermission(module, 'read');
-    el.style.display = canRead ? '' : 'none';
-  });
+  // Owner-admin : UNIQUEMENT si is_owner=true dans Supabase
+  const ownerNav = document.getElementById('nav-owner-admin');
+  if (ownerNav) {
+    ownerNav.style.display = isOwner() ? 'flex' : 'none';
+    ownerNav.style.visibility = isOwner() ? 'visible' : 'hidden';
+  }
 }
 
 function hasPermission(module, action) {
@@ -9648,7 +9728,10 @@ async function startApp() {
   applyNavPermissions(); // cacher les sections selon le rôle
   // Afficher nom du tenant
   const tenantNameEl = document.getElementById('sidebar-tenant-name');
-  if (tenantNameEl && GP_TENANT) tenantNameEl.textContent = GP_TENANT.nom;
+  if (tenantNameEl && GP_TENANT) {
+    const planBadge = {starter:'🥉',business:'🥈',premium:'🥇'}[GP_TENANT.plan] || '';
+    tenantNameEl.textContent = GP_TENANT.nom + (planBadge ? ' ' + planBadge : '');
+  }
   const pending = (conges||[]).filter(c=>c.statut==='pending').length;
   const badge = document.getElementById('badge-conges');
   if(badge){ badge.textContent=pending; badge.style.display=pending>0?'':'none'; }
@@ -9780,7 +9863,8 @@ function applyRBACUI() {
     if (!match) return;
     const page = match[1];
     if (page === 'superadmin') return; // géré séparément via navSA
-    const allowed = navRules.hasOwnProperty(page) ? navRules[page] : false;
+    if (page === 'owner-admin') return; // géré séparément via applyNavPermissions
+    const allowed = navRules.hasOwnProperty(page) ? navRules[page] : (isSuperAdmin() ? hasModuleAccess(page) : false);
     el.style.display = allowed ? 'flex' : 'none';
   });
 
