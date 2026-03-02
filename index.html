@@ -9429,8 +9429,9 @@ function getAllRoles() {
 async function loadSAData() {
   try {
     const tid = GP_TENANT?.id || null;
-    const locsQ = tid ? sb.from('gp_locaux').select('*').eq('tenant_id', tid).order('nom')
-                      : sb.from('gp_locaux').select('*').order('nom');
+    // TOUJOURS filtrer par tenant — jamais charger sans tenant
+    if (!tid) { GP_LOCAUX_ALL = []; GP_USERS_ALL = []; return; }
+    const locsQ = sb.from('gp_locaux').select('*').eq('tenant_id', tid).order('nom');
     const { data: locs } = await locsQ;
     GP_LOCAUX_ALL = (locs || []).map(l => ({
       id: l.id, nom: l.nom,
@@ -9442,8 +9443,7 @@ async function loadSAData() {
     }));
     locaux = GP_LOCAUX_ALL;
 
-    const usrsQ = tid ? sb.from('gp_users').select('*').eq('tenant_id', tid).order('nom')
-                      : sb.from('gp_users').select('*').order('nom');
+    const usrsQ = sb.from('gp_users').select('*').eq('tenant_id', tid).order('nom');
     const { data: usrs } = await usrsQ;
     GP_USERS_ALL = (usrs || []).map(u => ({
       id: u.id, nom: u.nom, prenom: u.prenom || '',
@@ -9797,17 +9797,27 @@ function applyRBACUI() {
 async function loadUserData() {
   const lid = getLocalId();
   const tid = GP_TENANT?.id || null;
+
+  // SÉCURITÉ : si pas de tenant_id connu → bloquer le chargement
+  if (!tid) {
+    console.warn('[Security] No tenant_id — refusing to load data');
+    products = []; sales = []; clients = []; employes = []; caisseOps = [];
+    conteneurs = []; ordres = []; livraisons = []; conges = []; docsRHHistory = [];
+    return;
+  }
+
   // Filtre tenant_id (isolation données) + local_id si non SA
   const filter = (q) => {
-    if (tid) q = q.eq('tenant_id', tid);
+    q = q.eq('tenant_id', tid); // TOUJOURS filtrer par tenant
     if (lid) q = q.eq('local_id', lid);
     return q;
   };
 
   try {
     // ── Produits — TOUS les locaux du tenant ───────────────────
-    const prodsQ = tid ? sb.from('gp_products').select('*').eq('tenant_id', tid).order('name')
-                       : sb.from('gp_products').select('*').order('name');
+    const prodsQ = lid
+      ? sb.from('gp_products').select('*').eq('tenant_id', tid).eq('local_id', lid).order('name')
+      : sb.from('gp_products').select('*').eq('tenant_id', tid).order('name');
     const { data: prods } = await prodsQ;
     products = (prods || []).map(p => ({
       id: p.id, local_id: p.local_id,
@@ -10435,11 +10445,13 @@ function setupRealtime() {
       const rowId = (payload.new || payload.old || {}).id;
       if (rowId && _lastSaveIds.has(rowId) && Date.now() - _lastSaveTime < 3000) return;
 
-      // Filtre côté client :
-      // - gp_settings, gp_locaux, gp_products : globaux — tous les users voient tout
-      // - Autres tables : filtrées par local
+      // Filtre côté client — ISOLATION TENANT
       const row = payload.new || payload.old || {};
+      const currentTid = GP_TENANT?.id || null;
       const currentLid = getLocalId();
+      // Ignorer les events d'autres tenants
+      if (currentTid && row.tenant_id && row.tenant_id !== currentTid) return;
+      // Filtre local si nécessaire
       const isGlobalTable = tbl === 'gp_locaux' || tbl === 'gp_products';
       if (!isGlobalTable && currentLid && row.local_id && row.local_id !== currentLid) return;
 
