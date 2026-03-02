@@ -987,6 +987,13 @@
             <div class="stat-value" id="stat-today">0 MAD</div>
             <div class="stat-label" id="stat-label-today">Ventes aujourd'hui</div>
             <div class="stat-sub" id="stat-today-count">0 transactions</div>
+            <div style="display:flex;gap:4px;margin-top:10px;flex-wrap:wrap;">
+              <button onclick="setDashPeriod('today')" id="dp-today" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid rgba(0,212,170,0.4);background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;cursor:pointer;font-family:'Outfit',sans-serif;">Jour</button>
+              <button onclick="setDashPeriod('week')" id="dp-week" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;">Semaine</button>
+              <button onclick="setDashPeriod('month')" id="dp-month" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;">Mois</button>
+              <button onclick="setDashPeriod('year')" id="dp-year" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;">Année</button>
+              <button onclick="setDashPeriod('all')" id="dp-all" style="flex:1;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:10px;font-weight:600;cursor:pointer;font-family:'Outfit',sans-serif;">Tout</button>
+            </div>
           </div>
           <div class="stat-card orange">
             <div class="stat-icon">📦</div>
@@ -1012,7 +1019,7 @@
           <div class="card">
             <div class="card-header">
               <span id="dash-card-sales-title">📈 Dernières ventes</span>
-              <button class="btn btn-secondary btn-sm" id="dash-btn-all" onclick="navigate('caisse')">Voir tout</button>
+              <button class="btn btn-secondary btn-sm" id="dash-btn-all" onclick="navigate('commandes')">Voir tout</button>
             </div>
             <div class="card-body">
               <div id="dashboard-sales-list">
@@ -6029,13 +6036,74 @@ function renderAlerts() {
 }
 
 // ─── DASHBOARD ───
+let DASH_PERIOD = 'today'; // today | week | month | year | all
+
+function setDashPeriod(period) {
+  DASH_PERIOD = period;
+  // Update button styles
+  ['today','week','month','year','all'].forEach(p => {
+    const btn = document.getElementById('dp-' + p);
+    if (!btn) return;
+    if (p === period) {
+      btn.style.background = 'rgba(0,212,170,0.15)';
+      btn.style.borderColor = 'rgba(0,212,170,0.4)';
+      btn.style.color = 'var(--accent)';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--text2)';
+    }
+  });
+  renderDashboard();
+}
+
+function getDashSales() {
+  const now = new Date();
+  const today = now.toDateString();
+  switch(DASH_PERIOD) {
+    case 'today':
+      return sales.filter(s => new Date(s.date).toDateString() === today);
+    case 'week': {
+      const startWeek = new Date(now); startWeek.setDate(now.getDate() - now.getDay());
+      startWeek.setHours(0,0,0,0);
+      return sales.filter(s => new Date(s.date) >= startWeek);
+    }
+    case 'month': {
+      return sales.filter(s => {
+        const d = new Date(s.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+    }
+    case 'year': {
+      return sales.filter(s => new Date(s.date).getFullYear() === now.getFullYear());
+    }
+    case 'all':
+      return sales;
+    default:
+      return sales.filter(s => new Date(s.date).toDateString() === today);
+  }
+}
+
+function getDashPeriodLabel() {
+  switch(DASH_PERIOD) {
+    case 'today': return "Ventes aujourd'hui";
+    case 'week': return 'Ventes cette semaine';
+    case 'month': return 'Ventes ce mois';
+    case 'year': return 'Ventes cette année';
+    case 'all': return 'Toutes les ventes';
+    default: return "Ventes aujourd'hui";
+  }
+}
+
 function renderDashboard() {
   const today = new Date().toDateString();
-  const todaySales = sales.filter(s => new Date(s.date).toDateString() === today);
+  const todaySales = getDashSales();
   const todayTotal = todaySales.reduce((sum, s) => sum + s.total, 0);
 
   document.getElementById('stat-today').textContent = fmt(todayTotal);
   document.getElementById('stat-today-count').textContent = `${todaySales.length} ${t('dash_transactions')}`;
+  const labelEl = document.getElementById('stat-label-today');
+  if (labelEl) labelEl.textContent = getDashPeriodLabel();
   // Compter les produits uniques (groupés par code ou nom)
   const uniqueProds = new Set(products.map(p => (p.code&&p.code.trim()) ? p.code.trim().toLowerCase() : p.name.trim().toLowerCase())).size;
   document.getElementById('stat-products').textContent = uniqueProds;
@@ -6049,7 +6117,7 @@ function renderDashboard() {
   document.getElementById('stat-credit-count').textContent = `${creditClients} ${t('dash_clients_label')}`;
 
   // Recent sales
-  const recentSales = sales.slice(0, 6);
+  const recentSales = getDashSales().slice(0, 6);
   const salesDiv = document.getElementById('dashboard-sales-list');
   if (!recentSales.length) {
     salesDiv.innerHTML = `<div class="empty-state"><div class="emoji">🧾</div><p>${t('dash_no_sales')}</p></div>`;
