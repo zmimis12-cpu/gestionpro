@@ -6419,7 +6419,7 @@ const PLAN_MODULES = {
   premium: [
     'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings',
     'locaux', 'employes', 'conges', 'fonds', 'commandes',
-    'conteneurs', 'docscont', 'livraisons', 'docs-rh', 'docs-admin', 'superadmin'
+    'conteneurs', 'docscont', 'livraisons', 'docs-rh', 'docs_rh', 'docs-admin', 'docs_admin', 'superadmin'
   ]
 };
 
@@ -6431,8 +6431,10 @@ function getPlanModules() {
 function hasModuleAccess(module) {
   // Owner voit tout
   if (isOwner()) return true;
-  // Vérifier si le module est dans le plan du tenant
-  return getPlanModules().includes(module);
+  // Normaliser tiret/underscore pour comparaison
+  const normalize = (s) => s.replace(/-/g, '_');
+  const modules = getPlanModules();
+  return modules.some(m => m === module || normalize(m) === normalize(module));
 }
 
 // ╔══════════════════════════════════════════════════════════════╗
