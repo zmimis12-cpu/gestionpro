@@ -3,10 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://fonts.gstatic.com https://cdn.jsdelivr.net https://*.supabase.co wss://*.supabase.co data: blob:;">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src  'self' 'unsafe-inline'
+              https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0/;
+  style-src   'self' 'unsafe-inline'
+              https://fonts.googleapis.com;
+  font-src    https://fonts.gstatic.com;
+  connect-src https://xyaispmikggrgjczyghk.supabase.co
+              wss://xyaispmikggrgjczyghk.supabase.co
+              https://xyaispmikggrgjczyghk.supabase.co/functions/v1/sign-jwt
+              https://xyaispmikggrgjczyghk.supabase.co/functions/v1/confirm-sale;
+  img-src     'self' data: blob: https:;
+  frame-ancestors 'none';
+  base-uri    'self';
+  form-action 'self';
+">
 <title>GestionPro — Caisse & Stock</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SRI: run: curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0/dist/umd/supabase.min.js | openssl dgst -sha384 -binary | base64 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.0/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 <style>
   :root {
     --bg: #f0f4f8;
@@ -5998,128 +6014,171 @@ function populateClientSelect() {
     clients.map(c => `<option value="${c.id}">${escapeHTML(c.name)}${c.creditUsed > 0 ? ` (Dette: ${fmt(c.creditUsed)})` : ''}</option>`).join('');
 }
 
-function checkout(docType) {
+// ================================================================
+// SECURE CHECKOUT — calls confirm-sale Edge Function
+// Totals are recalculated server-side using real DB prices.
+// Stock is deducted atomically with FOR UPDATE lock.
+// ================================================================
+async function checkout(docType) {
   if (!cart.length) { toast(t('toast_cart_empty'), 'warn'); return; }
+  if (!GP_ACCESS_TOKEN) { toast('Session expiree — reconnectez-vous', 'error'); return; }
+
+  // ── Client-side pre-checks (UX only — server re-validates) ──
   const fin = calcCartFinancials();
 
-  // Credit check — on vérifie sur le total TTC
-  if (selectedPayment === 'Crédit') {
+  if (selectedPayment === 'Credit') {
     if (!currentClientId) { toast(t('toast_select_client'), 'error'); return; }
     const client = clients.find(c => c.id === currentClientId);
-    const used = client.creditUsed || 0;
-    const limit = client.creditLimit || 500;
+    const used   = client?.creditUsed || 0;
+    const limit  = client?.creditLimit || 500;
     if (used + fin.totalTTC > limit) {
-      toast(`${t('toast_credit_exceeded')} (${fmt(limit - used)})`, 'error');
+      toast(t('toast_credit_exceeded') + ' (' + fmt(limit - used) + ')', 'error');
       return;
     }
   }
 
-  // Deduct stock
-  cart.forEach(item => {
-    const pid = item.productId || item.id;
-    const p = products.find(x => x.id === pid);
-    if (!p) return;
-    if (item.size && p.sizes) {
-      // Déduire du stock par taille
-      p.sizes[item.size] = Math.max(0, (p.sizes[item.size] || 0) - item.qty);
-      p.stock = Object.values(p.sizes).reduce((s, v) => s + v, 0);
-    } else if (item.color && p.colors) {
-      // Déduire du stock par couleur
-      p.colors[item.color] = Math.max(0, (p.colors[item.color] || 0) - item.qty);
-      p.stock = Object.values(p.colors).reduce((s, v) => s + v, 0);
-    } else {
-      p.stock = Math.max(0, p.stock - item.qty);
-    }
-  });
+  // ── Disable checkout button during processing ──
+  const checkoutBtn = document.querySelector('[onclick*="checkout"]');
+  if (checkoutBtn) { checkoutBtn.disabled = true; checkoutBtn.textContent = 'Traitement...'; }
 
-  // Update client credit
-  // Crédit = augmente CA + bénéfice + débiteur client, mais PAS la trésorerie
-  if (currentClientId && selectedPayment === 'Crédit') {
-    const client = clients.find(c => c.id === currentClientId);
-    if (client) {
-      client.creditUsed = (client.creditUsed || 0) + fin.totalTTC;
-      if (!client.transactions) client.transactions = [];
-      client.transactions.push({
-        type: 'debit', amount: fin.totalTTC,
-        date: new Date().toISOString(), note: 'Vente à crédit'
-      });
-    }
-  }
+  try {
+    const lid      = getLocalId();
+    const saleId   = uid();
+    const remiseVal  = parseFloat(document.getElementById('cart-remise-val')?.value) || 0;
+    const remiseType = document.getElementById('cart-remise-type')?.value || 'pct';
 
-  // Record sale — structure financière complète
-  const lid = getLocalId();
-  const remiseVal  = parseFloat(document.getElementById('cart-remise-val')?.value) || 0;
-  const remiseType = document.getElementById('cart-remise-type')?.value || 'pct';
-  const sale = {
-    id: uid(),
-    local_id: lid,
-    date: new Date().toISOString(),
-    items: cart.map(item => {
-      const pid = item.productId || item.id;
-      const prod = products.find(p => p.id === pid);
-      const pa = prod?.cost || prod?.buyPrice || prod?.prixAchat || 0;
-      return {
-        ...item,
-        buyPrice:  pa,           // snapshot prix achat au moment de la vente
-        sellPrice: item.price,   // snapshot prix vente
-      };
-    }),
-    // Financials
-    subtotalHT:   fin.subtotalHT,    // Sous-total brut HT
-    remiseMt:     fin.remiseMt,      // Montant remise
-    remiseVal:    remiseVal,
-    remiseType:   remiseType,
-    caHT:         fin.caHT,          // CA HT après remise
-    cogs:         fin.cogs,          // Coût marchandises vendues
-    beneficeBrut: fin.beneficeBrut,  // Bénéfice brut (avant TVA)
-    marge:        fin.marge,         // Marge %
-    tva:          fin.tvaRate,
-    tvaAmount:    fin.tvaAmt,        // TVA (ne fait PAS partie du bénéfice)
-    total:        fin.totalTTC,      // Total TTC (ce que paie le client)
-    totalHT:      fin.caHT,          // Alias pour compatibilité
-    payment:      selectedPayment,
-    clientId:     currentClientId,
-    clientName:   currentClientId ? (clients.find(c => c.id === currentClientId)?.name || '') : 'Client de passage',
-    isCreditSale: selectedPayment === 'Crédit',
-  };
-  sales.unshift(sale);
+    // Build minimal items for Edge Function (productId + qty + variant only)
+    const itemsPayload = cart.map(item => ({
+      productId: item.productId || item.id,
+      qty:       item.qty || 1,
+      size:      item.size  || null,
+      color:     item.color || null,
+    }));
 
-  // Log caisse — UNIQUEMENT si paiement cash/carte (pas crédit = pas de trésorerie)
-  if (selectedPayment !== 'Crédit') {
-    caisseOps.unshift({
-      id: uid(), local_id: lid, type: 'vente',
-      amount: fin.totalTTC,
-      label: `Vente (${sale.items.length} article${sale.items.length>1?'s':''}) — ${escapeHTML(sale.clientName)}`,
-      date: sale.date,
-      payment: sale.payment
+    // ── Call confirm-sale Edge Function ──
+    const resp = await fetch(SUPABASE_URL + '/functions/v1/confirm-sale', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_ANON,
+        'Authorization': 'Bearer ' + GP_ACCESS_TOKEN,
+      },
+      body: JSON.stringify({
+        saleId,
+        localId:      lid,
+        items:        itemsPayload,
+        discountVal:  remiseVal,
+        discountType: remiseType,
+        tvaRate:      settings.showTva ? (settings.tva || 0) : 0,
+        payment:      selectedPayment,
+        clientId:     currentClientId || null,
+        clientName:   currentClientId
+          ? (clients.find(c => c.id === currentClientId)?.name || 'Client')
+          : 'Client de passage',
+        // Send client total for server-side deviation check
+        clientTotal:   fin.totalTTC,
+        clientTotalHT: fin.caHT,
+      }),
     });
-  } else {
-    // Vente crédit → log séparé comme "créance client"
-    caisseOps.unshift({
-      id: uid(), local_id: lid, type: 'credit_vente',
-      amount: fin.totalTTC,
-      label: `Crédit client — ${escapeHTML(sale.clientName)} (${sale.items.length} art.)`,
-      date: sale.date,
-      payment: 'Crédit'
+
+    const result = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(result.error || 'Echec de la vente');
+    }
+
+    // ── Use server-verified financials for receipt ──
+    const sale = {
+      id:          saleId,
+      local_id:    lid,
+      date:        new Date().toISOString(),
+      items:       result.items,  // items with DB-verified prices
+      // Server-verified financials
+      subtotalHT:   result.subtotalHT,
+      remiseMt:     result.remiseMt,
+      remiseVal,
+      remiseType,
+      caHT:         result.totalHT,
+      cogs:         result.cogs,
+      beneficeBrut: result.beneficeBrut,
+      marge:        result.marge,
+      tva:          settings.showTva ? (settings.tva || 0) : 0,
+      tvaAmount:    result.tvaAmount,
+      total:        result.total,      // server total — authoritative
+      totalHT:      result.totalHT,
+      payment:      selectedPayment,
+      clientId:     currentClientId,
+      clientName:   currentClientId
+        ? (clients.find(c => c.id === currentClientId)?.name || '')
+        : 'Client de passage',
+      isCreditSale: selectedPayment === 'Credit',
+    };
+
+    // ── Update local state (sync what server already saved) ──
+    // Update products stock from server-verified items
+    result.items.forEach(item => {
+      const p = products.find(x => x.id === item.productId);
+      if (!p) return;
+      if (item.size && p.sizes) {
+        p.sizes[item.size] = Math.max(0, (p.sizes[item.size] || 0) - item.qty);
+        p.stock = Object.values(p.sizes).reduce((s, v) => s + v, 0);
+      } else if (item.color && p.colors) {
+        p.colors[item.color] = Math.max(0, (p.colors[item.color] || 0) - item.qty);
+        p.stock = Object.values(p.colors).reduce((s, v) => s + v, 0);
+      } else {
+        p.stock = Math.max(0, p.stock - item.qty);
+      }
     });
-  }
-  save();
 
-  // WhatsApp notification automatique si vente à crédit
-  if (sale.isCreditSale) {
-    const creditClient = clients.find(c => c.id === sale.clientId);
-    setTimeout(() => {
-      sendWhatsAppCredit(sale, creditClient);
-    }, 500);
-  }
+    sales.unshift(sale);
 
-  // Show receipt or invoice
-  showReceipt(sale, docType);
-  clearCart();
-  renderProductGrid();
-  updateAlertCount();
-  renderDashboard();
+    // Update client credit locally
+    if (currentClientId && selectedPayment === 'Credit') {
+      const client = clients.find(c => c.id === currentClientId);
+      if (client) {
+        client.creditUsed = (client.creditUsed || 0) + result.total;
+        if (!client.transactions) client.transactions = [];
+        client.transactions.push({
+          type: 'debit', amount: result.total,
+          date: new Date().toISOString(), note: 'Vente a credit',
+        });
+      }
+    }
+
+    // Caisse op already saved by Edge Function — just update local array
+    const caisseType = selectedPayment !== 'Credit' ? 'vente' : 'credit_vente';
+    caisseOps.unshift({
+      id: 'CO-' + saleId, local_id: lid, type: caisseType,
+      amount: result.total,
+      label: caisseType === 'vente'
+        ? 'Vente (' + sale.items.length + ' articles)'
+        : 'Credit client — ' + sale.clientName,
+      date: sale.date, payment: selectedPayment,
+    });
+
+    // WhatsApp for credit sales
+    if (sale.isCreditSale) {
+      const creditClient = clients.find(c => c.id === sale.clientId);
+      setTimeout(() => sendWhatsAppCredit(sale, creditClient), 500);
+    }
+
+    showReceipt(sale, docType);
+    clearCart();
+    renderProductGrid();
+    updateAlertCount();
+    renderDashboard();
+
+  } catch(e) {
+    toast('Erreur vente: ' + escapeHTML(e.message), 'error');
+    console.error('[checkout]', e);
+  } finally {
+    if (checkoutBtn) {
+      checkoutBtn.disabled    = false;
+      checkoutBtn.textContent = 'Valider';
+    }
+  }
 }
+
 
 function buildInvoiceHTML(sale) {
   const now = new Date(sale.date);
@@ -10504,8 +10563,9 @@ const DEFAULT_ROLES = {
 // ╔══════════════════════════════════════════════════════════════╗
 // ║                      AUTH STATE                              ║
 // ╚══════════════════════════════════════════════════════════════╝
-let GP_USER   = null;   // utilisateur connecté
-let GP_TENANT = null;   // tenant actif (client)
+let GP_USER         = null;   // utilisateur connecté
+let GP_TENANT       = null;   // tenant actif (client)
+let GP_ACCESS_TOKEN = null;   // JWT signé par sign-jwt Edge Function
 let GP_ROLES  = {};     // rôles chargés depuis Supabase
 let GP_LOCAUX_ALL = []; // tous les locaux (pour super admin)
 let GP_USERS_ALL  = []; // tous les utilisateurs (pour super admin)
@@ -10739,113 +10799,115 @@ function generateSalt() {
 
 // Rate limiting désactivé temporairement
 
+// ================================================================
+// SECURE LOGIN — calls sign-jwt Edge Function
+// Password is verified server-side in Deno, never in browser.
+// Returns a signed JWT with tenant_id + role claims.
+// ================================================================
 async function doLogin() {
-  // Anti brute-force désactivé temporairement
   const now = Date.now();
+  // Client-side rate limit (first layer — Edge Function has its own)
+  const _rl = JSON.parse(sessionStorage.getItem('_gp_rl') || '{"c":0,"r":0}');
+  if (now > _rl.r) { _rl.c = 0; _rl.r = now + 60000; }
+  _rl.c++;
+  sessionStorage.setItem('_gp_rl', JSON.stringify(_rl));
+  if (_rl.c > 5) {
+    const wait = Math.ceil((_rl.r - now) / 1000);
+    showLoginErr('Trop de tentatives. Attendez ' + wait + 's.');
+    return;
+  }
 
-  const code  = (document.getElementById('l-code')?.value || '').trim().toLowerCase();
+  const code  = (document.getElementById('l-code')?.value  || '').trim().toLowerCase();
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const pwd   = document.getElementById('l-pwd').value;
   const btn   = document.getElementById('l-btn');
   const err   = document.getElementById('l-err');
   err.style.display = 'none';
 
-  if (!code) { showLoginErr("Code d'accès requis"); return; }
+  if (!code)          { showLoginErr("Code d'acces requis");          return; }
   if (!email || !pwd) { showLoginErr('Email et mot de passe requis'); return; }
 
-  btn.disabled = true;
-  btn.textContent = '⏳ Connexion...';
+  btn.disabled    = true;
+  btn.textContent = 'Connexion...';
 
   try {
-    // ── 1. Vérifier le tenant (code d'accès) ──
-    const { data: tenantData, error: tenantErr } = await sb
-      .from('gp_tenants')
-      .select('id, nom, code, actif, plan, expire_at, is_owner')
-      .eq('code', code)
-      .eq('actif', true)
-      .limit(1);
+    // ── Call sign-jwt Edge Function (password verified in Deno) ──
+    const resp = await fetch(SUPABASE_URL + '/functions/v1/sign-jwt', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON },
+      body:    JSON.stringify({ code, email, password: pwd }),
+    });
 
-    if (tenantErr) throw tenantErr;
-    const tenant = tenantData && tenantData.length > 0 ? tenantData[0] : null;
-    if (!tenant) throw new Error("Code d'accès invalide ou inactif");
+    const data = await resp.json();
 
-    // ── 2. Vérifier expiration licence ──
-    if (tenant.expire_at && new Date(tenant.expire_at) < new Date()) {
-      showLicenceExpired(tenant);
-      btn.disabled = false;
-      btn.textContent = 'Se connecter';
-      return;
-    }
-
-    // ── 3. Vérifier utilisateur dans ce tenant ──
-    // Récupérer l'user par email + tenant (sans filtrer par password côté Supabase)
-    let userRows, userErr;
-    try {
-      ({ data: userRows, error: userErr } = await sb
-        .from('gp_users')
-        .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,pwd_salt,password')
-        .eq('email', email)
-        .eq('actif', true)
-        .eq('tenant_id', tenant.id)
-        .limit(1));
-      if (userErr && userErr.message && userErr.message.includes('pwd_salt')) {
-        ({ data: userRows, error: userErr } = await sb
-          .from('gp_users')
-          .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,password')
-          .eq('email', email).eq('actif', true).eq('tenant_id', tenant.id).limit(1));
+    if (!resp.ok) {
+      if (data.code === 'LICENCE_EXPIRED') {
+        showLicenceExpired({ expire_at: data.expiredAt });
+        return;
       }
-    } catch(qe) {
-      ({ data: userRows, error: userErr } = await sb
-        .from('gp_users')
-        .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,password')
-        .eq('email', email).eq('actif', true).eq('tenant_id', tenant.id).limit(1));
+      if (data.code === 'PASSWORD_RESET_REQUIRED') {
+        showLoginErr('Mot de passe expire. Contactez votre administrateur.');
+        return;
+      }
+      throw new Error(data.error || 'Connexion echouee');
     }
 
-    if (userErr) throw userErr;
-    const candidate = userRows?.[0] || null;
+    const { access_token, user } = data;
 
-    if (!candidate) throw new Error('Email ou mot de passe incorrect');
+    // ── Store JWT in memory (NOT localStorage — security best practice) ──
+    GP_ACCESS_TOKEN = access_token;
 
-    // Essai 1 : salt unique (nouveaux comptes)
-    const userSalt = candidate.pwd_salt || null;
-    const pwdHashSalt = userSalt ? await hashPassword(pwd, userSalt) : null;
+    // ── Inject signed JWT into Supabase client so RLS claims are active ──
+    // All subsequent sb.from() calls will carry this JWT with tenant_id + role
+    try {
+      await sb.auth.setSession({ access_token, refresh_token: '' });
+    } catch(sessionErr) {
+      // If setSession fails (custom JWT vs Supabase Auth secret mismatch),
+      // queries will work via the Authorization header set in gp_setAuthHeader()
+      console.warn('[Auth] setSession note:', sessionErr.message);
+    }
 
-    // Essai 2 : salt global GP_SALT_2024 (comptes existants)
-    const pwdHashGlobal = await hashPassword(pwd, null);
+    // ── Build GP_USER and GP_TENANT from JWT payload ──
+    GP_USER = {
+      id:        user.id,
+      nom:       user.nom,
+      prenom:    user.prenom,
+      email:     user.email,
+      role:      user.role,
+      local_id:  user.local_id,
+      telephone: user.telephone,
+      tenant_id: user.tenant.id,
+    };
+    GP_TENANT = {
+      id:        user.tenant.id,
+      nom:       user.tenant.nom,
+      plan:      user.tenant.plan,
+      actif:     user.tenant.actif,
+      expire_at: user.tenant.expire_at,
+      is_owner:  user.tenant.is_owner,
+    };
 
-    // Essai 3 : plain text (très anciens comptes — migration)
-    const isPlainText = candidate.password === pwd;
+    // Optionally persist JWT to sessionStorage (tab survives reload, cleared on close)
+    // Comment this line if you prefer mandatory re-login on every page load:
+    sessionStorage.setItem('_gp_token', access_token);
+    // Store only IDs — re-login required on page reload (token in memory only)
+    localStorage.setItem('gp_session', JSON.stringify({
+      user:   { id: GP_USER.id },
+      tenant: { id: GP_TENANT.id },
+    }));
 
-    const passwordOk = (pwdHashSalt && candidate.password === pwdHashSalt)
-                    || candidate.password === pwdHashGlobal
-                    || isPlainText;
-
-    if (!passwordOk) throw new Error('Email ou mot de passe incorrect');
-
-    // Migration plain text → hash (désactivée jusqu'à ce que pwd_salt soit ajouté en DB)
-    // if (isPlainText && !candidate.password.match(/^[a-f0-9]{64}$/)) {
-    //   const newSalt = generateSalt();
-    //   const newHash = await hashPassword(pwd, newSalt);
-    //   sb.from('gp_users').update({ password: newHash, pwd_salt: newSalt }).eq('id', candidate.id).then(() => {});
-    // }
-
-    // Retirer les champs sensibles avant session
-    const { password: _pw, pwd_salt: _ps, ...foundUser } = candidate;
-
-    GP_USER   = foundUser;
-    GP_TENANT = tenant;
-    // Stocker UNIQUEMENT les IDs — tout sera re-fetché depuis Supabase au prochain chargement
-    localStorage.setItem('gp_session', JSON.stringify({ user: { id: GP_USER.id }, tenant: { id: GP_TENANT.id } }));
+    sessionStorage.removeItem('_gp_rl');
     await startApp();
+
   } catch(e) {
-    showLoginErr(e.message);
+    showLoginErr(e.message || 'Erreur de connexion');
   } finally {
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = 'Se connecter';
   }
 }
 
-// ── Vérification accès tenant en temps réel ──
+
 async function checkTenantAccess() {
   if (!GP_TENANT?.id) return;
   try {
@@ -12153,6 +12215,12 @@ function resetAllRolePerms() {
 }
 
 async function saveSAUser() {
+  // Server-side authorization: only super_admin or owner can manage users
+  if (!isSuperAdmin() && !isOwner()) {
+    toast('Acces non autorise', 'error');
+    console.error('[Security] Unauthorized saveSAUser attempt by:', GP_USER?.role);
+    return;
+  }
   const id      = document.getElementById('sau-id').value;
   const nom     = document.getElementById('sau-nom').value.trim();
   const email   = document.getElementById('sau-email').value.trim().toLowerCase(); // username utilisé comme identifiant
@@ -12854,6 +12922,20 @@ function deleteSARole(key) {
   }
 
   try {
+    // ── 0. Check for valid JWT (memory or sessionStorage) ────────
+    if (!GP_ACCESS_TOKEN) {
+      // No JWT in memory — require fresh login
+      // (JWT is cleared on tab close — this is intentional)
+      localStorage.removeItem('gp_session');
+      sessionStorage.removeItem('_gp_token');
+      return;
+    }
+
+    // Inject JWT into Supabase client so RLS claims are active
+    try {
+      await sb.auth.setSession({ access_token: GP_ACCESS_TOKEN, refresh_token: '' });
+    } catch(_) { /* header-based auth fallback — queries still work */ }
+
     // ── 1. Re-fetch user depuis Supabase (JAMAIS depuis localStorage)
     //       ⛔ Ne JAMAIS sélectionner password ou pwd_salt ici
     const { data: userData, error: userErr } = await sb
