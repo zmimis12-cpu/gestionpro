@@ -7744,7 +7744,7 @@ async function saveOATenant() {
         const { error: ue } = await sb.from('gp_users').insert({
           id: 'U' + Date.now(),
           tenant_id: tenantId,
-          nom: nom, email, password: pwd,
+          nom: nom, email, password: await hashPassword(pwd),
           role: 'super_admin', actif: true
         });
         if (ue) console.warn('User creation error:', ue.message);
@@ -10666,11 +10666,13 @@ async function loadSAData() {
     }));
     locaux = GP_LOCAUX_ALL;
 
-    const usrsQ = sb.from('gp_users').select('*').eq('tenant_id', tid).order('nom');
+    // Ne PAS charger les passwords dans le client (sécurité)
+    const usrsQ = sb.from('gp_users').select('id,nom,prenom,email,role,local_id,telephone,actif,created_at').eq('tenant_id', tid).order('nom');
     const { data: usrs } = await usrsQ;
     GP_USERS_ALL = (usrs || []).map(u => ({
       id: u.id, nom: u.nom, prenom: u.prenom || '',
-      email: u.email, password: u.password,
+      email: u.email,
+      // password NON chargé — jamais exposé au client
       role: u.role, local_id: u.local_id,
       telephone: u.telephone || '',
       actif: u.actif !== false, createdAt: u.created_at
@@ -10703,13 +10705,39 @@ document.getElementById('l-pwd').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
-function fillLogin(email, pwd, code) { const c=document.getElementById('l-code'); if(c&&code) c.value=code;
+function fillLogin(email, pwd, code) {
+  // fillLogin uniquement pour démos — ne pas utiliser en production
+  const c=document.getElementById('l-code'); if(c&&code) c.value=code;
   document.getElementById('l-email').value = email;
   document.getElementById('l-pwd').value = pwd;
   doLogin();
 }
 
+// ── Hash password SHA-256 (Web Crypto API — natif navigateur) ──
+async function hashPassword(pwd) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pwd + 'GP_SALT_2024'); // salt fixe
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// Rate limiting anti brute-force
+const _loginAttempts = { count: 0, lastFail: 0, locked: false };
+
 async function doLogin() {
+  // Anti brute-force: bloquer après 5 tentatives en 2 minutes
+  const now = Date.now();
+  if (_loginAttempts.locked && now - _loginAttempts.lastFail < 120000) {
+    const wait = Math.ceil((120000 - (now - _loginAttempts.lastFail)) / 1000);
+    showLoginErr(`Trop de tentatives. Réessayez dans ${wait}s`);
+    return;
+  }
+  if (now - _loginAttempts.lastFail > 120000) {
+    _loginAttempts.count = 0;
+    _loginAttempts.locked = false;
+  }
+
   const code  = (document.getElementById('l-code')?.value || '').trim().toLowerCase();
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const pwd   = document.getElementById('l-pwd').value;
@@ -10745,25 +10773,49 @@ async function doLogin() {
     }
 
     // ── 3. Vérifier utilisateur dans ce tenant ──
-    const { data, error } = await sb
+    // Hash le mot de passe avant comparaison
+    const pwdHash = await hashPassword(pwd);
+
+    // Essai 1: password hashé (nouveaux comptes)
+    let { data, error } = await sb
       .from('gp_users')
       .select('*')
       .eq('email', email)
-      .eq('password', pwd)
+      .eq('password', pwdHash)
       .eq('actif', true)
       .eq('tenant_id', tenant.id)
       .limit(1);
+
+    // Essai 2: fallback plain text (anciens comptes) → migrer au hash
+    if (!error && (!data || data.length === 0)) {
+      const { data: d2 } = await sb.from('gp_users').select('*')
+        .eq('email', email).eq('password', pwd)
+        .eq('actif', true).eq('tenant_id', tenant.id).limit(1);
+      if (d2 && d2.length > 0) {
+        data = d2;
+        // Migration automatique → remplacer plain text par hash
+        await sb.from('gp_users').update({ password: pwdHash }).eq('id', d2[0].id);
+      }
+    }
 
     if (error) throw error;
 
     const foundUser = data && data.length > 0 ? data[0] : null;
     if (!foundUser) throw new Error('Email ou mot de passe incorrect');
 
+    // Reset tentatives après succès
+    _loginAttempts.count = 0;
+    _loginAttempts.locked = false;
+
     GP_USER   = foundUser;
     GP_TENANT = tenant;
     localStorage.setItem('gp_session', JSON.stringify({ user: GP_USER, tenant: GP_TENANT }));
     await startApp();
   } catch(e) {
+    // Incrémenter tentatives échouées
+    _loginAttempts.count++;
+    _loginAttempts.lastFail = Date.now();
+    if (_loginAttempts.count >= 5) _loginAttempts.locked = true;
     showLoginErr(e.message);
   } finally {
     btn.disabled = false;
@@ -12111,14 +12163,14 @@ async function saveSAUser() {
     if (!finalPwd) {
       // Récupérer depuis Supabase
       const { data: dbUser } = await sb.from('gp_users').select('password').eq('id', id).maybeSingle();
-      finalPwd = dbUser?.password || 'changeme';
+      finalPwd = dbUser?.password || await hashPassword('changeme');
     }
   }
 
   const obj = {
     id:        id || 'U' + Date.now(),
     nom, email, role,
-    password:  finalPwd,
+    password:  pwd ? await hashPassword(pwd) : finalPwd,
     prenom:    document.getElementById('sau-prenom').value.trim(),
     telephone: document.getElementById('sau-tel').value.trim(),
     local_id:  localId || null,
