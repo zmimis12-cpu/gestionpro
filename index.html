@@ -872,13 +872,7 @@
       <button type="submit" class="lb" id="l-btn">Se connecter</button>
       </form>
       <div class="lerr" id="l-err"></div>
-      <div class="ldemo">
-        <h4>🧪 Comptes disponibles</h4>
-        <div class="ldemo-row"><span>👑 Super Admin</span><button onclick="fillLogin('admin@demo.ma','admin123','demo')">Code: demo / admin@demo.ma / admin123</button></div>
-        <div class="ldemo-row"><span>🏪 Admin</span><button onclick="fillLogin('admin.casa@demo.ma','admin123')">admin.casa@demo.ma / admin123</button></div>
-        <div class="ldemo-row"><span>💳 Caissier</span><button onclick="fillLogin('caissier@demo.ma','caissier123')">caissier@demo.ma / caissier123</button></div>
-        <div class="ldemo-row"><span>👨‍💼 RH</span><button onclick="fillLogin('rh@demo.ma','rh123')">rh@demo.ma / rh123</button></div>
-      </div>
+<!-- demo section hidden in production -->
     </div>
   </div>
 
@@ -10773,13 +10767,12 @@ async function doLogin() {
     }
 
     // ── 3. Vérifier utilisateur dans ce tenant ──
-    // Hash le mot de passe avant comparaison
     const pwdHash = await hashPassword(pwd);
 
     // Essai 1: password hashé (nouveaux comptes)
     let { data, error } = await sb
       .from('gp_users')
-      .select('*')
+      .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at')
       .eq('email', email)
       .eq('password', pwdHash)
       .eq('actif', true)
@@ -10788,7 +10781,8 @@ async function doLogin() {
 
     // Essai 2: fallback plain text (anciens comptes) → migrer au hash
     if (!error && (!data || data.length === 0)) {
-      const { data: d2 } = await sb.from('gp_users').select('*')
+      const { data: d2 } = await sb.from('gp_users')
+        .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,password')
         .eq('email', email).eq('password', pwd)
         .eq('actif', true).eq('tenant_id', tenant.id).limit(1);
       if (d2 && d2.length > 0) {
@@ -12137,7 +12131,7 @@ function resetAllRolePerms() {
 async function saveSAUser() {
   const id      = document.getElementById('sau-id').value;
   const nom     = document.getElementById('sau-nom').value.trim();
-  const email   = document.getElementById('sau-email').value.trim().toLowerCase();
+  const email   = document.getElementById('sau-email').value.trim().toLowerCase(); // username utilisé comme identifiant
   const pwd     = document.getElementById('sau-pwd').value;
   const role    = document.getElementById('sau-role').value;
   const localId = document.getElementById('sau-local').value;
