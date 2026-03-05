@@ -10485,24 +10485,37 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   global: {
     fetch: (url, options = {}) => {
-      const token = GP_ACCESS_TOKEN || SUPABASE_ANON;
-      // supabase-js v2 passe les headers comme un objet Headers ou un objet plain
-      // On doit gérer les deux cas pour ne pas perdre Content-Type et Prefer
+      // Toujours utiliser GP_ACCESS_TOKEN s'il existe, sinon anon key
+      const token = (typeof GP_ACCESS_TOKEN !== 'undefined' && GP_ACCESS_TOKEN) 
+        ? GP_ACCESS_TOKEN 
+        : SUPABASE_ANON;
+      
+      // Convertir Headers object en plain object (supabase-js v2 envoie Headers)
       const incoming = options.headers || {};
-      // Convertir en objet plain si c'est un Headers object
       const plainHeaders = {};
       if (incoming instanceof Headers) {
         incoming.forEach((val, key) => { plainHeaders[key] = val; });
       } else {
         Object.assign(plainHeaders, incoming);
       }
-      // Injecter Authorization + apikey sans écraser les autres headers
+      
+      // Toujours écraser Authorization avec notre token
       plainHeaders['Authorization'] = 'Bearer ' + token;
       plainHeaders['apikey'] = SUPABASE_ANON;
+      
       return fetch(url, { ...options, headers: plainHeaders });
     }
   },
-  auth: { persistSession: false, autoRefreshToken: false }
+  auth: { 
+    persistSession: false, 
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+    storage: { 
+      getItem: () => null, 
+      setItem: () => {}, 
+      removeItem: () => {} 
+    }
+  }
 });
 
 // ╔══════════════════════════════════════════════════════════════╗
