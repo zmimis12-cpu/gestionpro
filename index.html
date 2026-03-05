@@ -13285,6 +13285,11 @@ function deleteSARole(key) {
   if (typeof viewLocal !== "undefined") window.viewLocal = viewLocal;
   if (typeof voirEmploye !== "undefined") window.voirEmploye = voirEmploye;
 
+  // Expose missing functions to window
+  window.openRestockModal = typeof openRestockModal !== 'undefined' ? openRestockModal : null;
+  window.openSALocalModal = typeof openSALocalModal !== 'undefined' ? openSALocalModal : null;
+  window.openSAUserModal  = typeof openSAUserModal  !== 'undefined' ? openSAUserModal  : null;
+
 })();
 </script>
 </body>
