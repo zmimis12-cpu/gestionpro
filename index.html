@@ -10488,7 +10488,7 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 // Crée le client Supabase avec injection dynamique du JWT
 // À chaque requête, le token actuel (GP_ACCESS_TOKEN) est utilisé
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
   global: {
     headers: { apikey: SUPABASE_ANON },
     fetch: (url, options = {}) => {
@@ -10966,6 +10966,15 @@ async function doLogin() {
     }));
 
     sessionStorage.removeItem('_gp_rl');
+
+    // ── Recréer le client Supabase avec le token JWT ──
+    // On utilise accessToken function pour que fetchWithAuth utilise notre JWT
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+      global: { headers: { apikey: SUPABASE_ANON } },
+      accessToken: async () => window.GP_ACCESS_TOKEN || SUPABASE_ANON,
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+    });
+
     await startApp();
 
   } catch(e) {
