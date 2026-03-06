@@ -10772,7 +10772,7 @@ async function doLogin() {
   btn.textContent = '⏳ Connexion...';
 
   try {
-    // ── 1. Vérifier le tenant (code d'accès) ──
+    // ── 1. Vérifier le tenant (code d'accès) via clé anon ──
     const { data: tenantData, error: tenantErr } = await sb
       .from('gp_tenants')
       .select('id, nom, code, actif, plan, expire_at, is_owner')
@@ -10792,36 +10792,29 @@ async function doLogin() {
       return;
     }
 
-    // ── 3. Récupérer le user par email (pour lire son pwd_salt) ──
-    let { data: userRow, error: userErr } = await sb
+    // ── 3. Login Supabase Auth ──
+    const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
+      email: email,
+      password: pwd
+    });
+
+    if (authErr) throw new Error('Email ou mot de passe incorrect');
+
+    // ── 4. Vérifier que le user appartient bien à ce tenant ──
+    const { data: userRow, error: userErr } = await sb
       .from('gp_users')
-      .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,pwd_salt,password')
-      .eq('email', email)
+      .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,auth_id')
+      .eq('auth_id', authData.user.id)
       .eq('actif', true)
       .eq('tenant_id', tenant.id)
       .limit(1);
 
     if (userErr) throw userErr;
-    const candidate = userRow && userRow.length > 0 ? userRow[0] : null;
-    if (!candidate) throw new Error('Email ou mot de passe incorrect');
-
-    // ── 4. Calculer le hash avec le salt du user ──
-    const salt = candidate.pwd_salt || 'GP_SALT_2024';
-    const encoder = new TextEncoder();
-    const buf = await crypto.subtle.digest('SHA-256', encoder.encode(pwd + salt));
-    const pwdHash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-
-    let data = null, error = null;
-    if (candidate.password === pwdHash) {
-      data = [candidate];
+    const foundUser = userRow && userRow.length > 0 ? userRow[0] : null;
+    if (!foundUser) {
+      await sb.auth.signOut();
+      throw new Error('Accès refusé pour ce tenant');
     }
-
-
-
-    if (error) throw error;
-
-    const foundUser = data && data.length > 0 ? data[0] : null;
-    if (!foundUser) throw new Error('Email ou mot de passe incorrect');
 
     // Reset tentatives après succès
     _loginAttempts.count = 0;
@@ -10889,6 +10882,7 @@ function forceLogout(reason) {
   _rtChannels = [];
   localStorage.removeItem('gp_session');
   GP_USER = null; GP_TENANT = null;
+  sb.auth.signOut();
   const appWrap = document.getElementById('app-wrapper');
   const loginScreen = document.getElementById('login-screen');
   if (appWrap) appWrap.style.display = 'none';
