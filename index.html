@@ -11938,7 +11938,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) products[idx] = p; else products.unshift(p);
     }
     renderStockTable(false); updateAlertCount();
-    _showSyncToast('Stock mis à jour');
+    if (document.getElementById('page-stock')?.classList.contains('active')) _showSyncToast('Stock mis à jour');
 
   } else if (tbl === 'gp_sales') {
     if (eventType === 'DELETE') {
@@ -11953,7 +11953,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     }
     if (typeof renderVentes === 'function') renderVentes();
     renderDashboard();
-    _showSyncToast('Ventes mises à jour');
+    if (document.getElementById('page-ventes')?.classList.contains('active')) _showSyncToast('Ventes mises à jour');
 
   } else if (tbl === 'gp_clients') {
     if (eventType === 'DELETE') {
@@ -11968,7 +11968,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     }
     if (typeof renderClients === 'function') renderClients();
     populateClientSelect();
-    _showSyncToast('Clients mis à jour');
+    if (document.getElementById('page-clients')?.classList.contains('active')) _showSyncToast('Clients mis à jour');
 
   } else if (tbl === 'gp_employes') {
     if (eventType === 'DELETE') {
@@ -11982,7 +11982,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) employes[idx] = e; else employes.push(e);
     }
     renderEmployes(); updateEmployeSelects();
-    _showSyncToast('Employés mis à jour');
+    if (document.getElementById('page-employes')?.classList.contains('active')) _showSyncToast('Employés mis à jour');
 
   } else if (tbl === 'gp_caisse_ops') {
     const normOp = r => ({ ...r, label: r.label || r.description || '', payment: r.payment || null });
@@ -11995,7 +11995,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) caisseOps[idx] = normOp(newRow); else caisseOps.unshift(normOp(newRow));
     }
     if (typeof renderFonds === 'function') renderFonds();
-    _showSyncToast('Caisse mise à jour');
+    if (document.getElementById('page-caisse')?.classList.contains('active')) _showSyncToast('Caisse mise à jour');
 
   } else if (tbl === 'gp_livraisons') {
     if (eventType === 'DELETE') {
@@ -12009,7 +12009,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) livraisons[idx] = l; else livraisons.unshift(l);
     }
     if (typeof renderLivraisons === 'function') renderLivraisons();
-    _showSyncToast('Livraisons mises à jour');
+    if (document.getElementById('page-livraisons')?.classList.contains('active')) _showSyncToast('Livraisons mises à jour');
 
   } else if (tbl === 'gp_conges') {
     if (eventType === 'DELETE') {
@@ -12027,7 +12027,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     const pending = conges.filter(c=>c.statut==='pending').length;
     const badge = document.getElementById('badge-conges');
     if (badge) { badge.textContent=pending; badge.style.display=pending>0?'':'none'; }
-    _showSyncToast('Congés mis à jour');
+    if (document.getElementById('page-conges')?.classList.contains('active')) _showSyncToast('Congés mis à jour');
 
   } else if (tbl === 'gp_conteneurs') {
     if (eventType === 'DELETE') {
@@ -12047,7 +12047,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) conteneurs[idx] = c; else conteneurs.unshift(c);
     }
     if (typeof renderConteneurs === 'function') renderConteneurs();
-    _showSyncToast('Conteneurs mis à jour');
+    if (document.getElementById('page-conteneurs')?.classList.contains('active')) _showSyncToast('Conteneurs mis à jour');
 
   } else if (tbl === 'gp_ordres') {
     if (eventType === 'DELETE') {
@@ -12061,7 +12061,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) ordres[idx] = o; else ordres.unshift(o);
     }
     if (typeof renderConteneurs === 'function') renderConteneurs();
-    _showSyncToast('Ordres mis à jour');
+    if (document.getElementById('page-conteneurs')?.classList.contains('active')) _showSyncToast('Ordres mis à jour');
 
   } else if (tbl === 'gp_docs_rh') {
     if (eventType === 'DELETE') {
@@ -12076,7 +12076,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     }
     if (typeof renderDocsRH === 'function') renderDocsRH();
     if (typeof renderDocsRH === 'function') renderDocsRH();
-    _showSyncToast('Documents RH mis à jour');
+    if (document.getElementById('page-docs_rh')?.classList.contains('active')) _showSyncToast('Documents RH mis à jour');
 
   } else if (tbl === 'gp_locaux') {
     // Reload locaux depuis Supabase pour avoir la liste à jour
@@ -12087,7 +12087,7 @@ async function _handleRealtimeEvent(tbl, payload) {
         locaux = GP_LOCAUX_ALL;
         if (typeof renderLocaux === 'function') renderLocaux();
         updateSALocalSwitcher();
-        _showSyncToast('Locaux mis à jour');
+        if (document.getElementById('page-locaux')?.classList.contains('active')) _showSyncToast('Locaux mis à jour');
       }
     } catch(e) { console.debug('[Realtime] gp_locaux reload:', e); }
   }
