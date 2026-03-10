@@ -7934,12 +7934,15 @@ Cette action est irréversible !`)) return;
     for (const tbl of tables) {
       try { await sb.from(tbl).delete().eq('tenant_id', tenantId); } catch(e) {}
     }
+    // Supprimer subscriptions du tenant
+    try { await sb.from('gp_subscriptions').delete().eq('tenant_id', tenantId); } catch(e) {}
     // Supprimer les users du tenant
-    await sb.from('gp_users').delete().eq('tenant_id', tenantId);
+    try { await sb.from('gp_users').delete().eq('tenant_id', tenantId); } catch(e) {}
     // Supprimer le tenant
     const { error } = await sb.from('gp_tenants').delete().eq('id', tenantId);
     if (error) throw error;
     OA_TENANTS = OA_TENANTS.filter(t => t.id !== tenantId);
+    OA_SUBSCRIPTIONS = OA_SUBSCRIPTIONS.filter(s => s.tenant_id !== tenantId);
     toast(`🗑️ Client "${nom}" supprimé`);
     renderOAStats();
     renderOATenants();
