@@ -860,6 +860,30 @@ function escapeHTML(str) {
     <div style="font-size:13px;color:var(--text2);">Connexion à Supabase</div>
   </div>
 
+  <!-- Écran expiration bloquant -->
+  <div id="expired-screen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9998;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+    <div style="font-size:64px;margin-bottom:20px;">⏰</div>
+    <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;margin-bottom:10px;">Abonnement expiré</div>
+    <div style="font-size:14px;color:var(--text2);max-width:400px;line-height:1.6;margin-bottom:32px;">
+      Votre abonnement <strong id="expired-plan-name" style="color:var(--accent);"></strong> a expiré le <strong id="expired-date" style="color:var(--text);"></strong>.<br>
+      Renouvelez pour continuer à accéder à GestionPro.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;">
+      <button onclick="navigate('abonnement');document.getElementById('expired-screen').style.display='none';"
+        style="padding:14px;border-radius:12px;background:var(--accent);color:#000;font-weight:800;border:none;cursor:pointer;font-size:15px;font-family:'Outfit',sans-serif;">
+        💳 Renouveler mon abonnement
+      </button>
+      <a id="expired-wa-link" href="#" target="_blank"
+        style="padding:12px;border-radius:12px;background:#25D366;color:#fff;font-weight:700;text-decoration:none;font-size:14px;display:block;">
+        💬 Contacter sur WhatsApp
+      </a>
+      <button onclick="doLogout()"
+        style="padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:13px;">
+        Se déconnecter
+      </button>
+    </div>
+  </div>
+
   <!-- ══ LOGIN SCREEN ══ -->
   <div id="login-screen">
     <div class="lc">
@@ -11340,6 +11364,22 @@ async function startApp() {
   // Cacher loader, afficher app
   if (loader) loader.style.display = 'none';
   if (appWrap) appWrap.style.cssText = 'display:flex;width:100%;height:100%;';
+
+  // ── Vérifier expiration abonnement ──
+  if (!isOwner() && GP_TENANT?.expire_at) {
+    const expDate = new Date(GP_TENANT.expire_at);
+    if (expDate < new Date()) {
+      const planNames = { starter:'Starter 🥉', business:'Business 🥈', premium:'Premium 🥇', trial:'Essai gratuit' };
+      const expEl = document.getElementById('expired-screen');
+      if (expEl) {
+        document.getElementById('expired-plan-name').textContent = planNames[GP_TENANT.plan] || GP_TENANT.plan;
+        document.getElementById('expired-date').textContent = expDate.toLocaleDateString('fr-FR');
+        const waLink = document.getElementById('expired-wa-link');
+        if (waLink) waLink.href = `https://wa.me/212664783510?text=Bonjour%2C%20je%20veux%20renouveler%20mon%20abonnement%20GestionPro%20(code%3A%20${GP_TENANT.code})`;
+        expEl.style.display = 'flex';
+      }
+    }
+  }
 
   const firstPage = applyRBACUI();
   populateClientSelect();
