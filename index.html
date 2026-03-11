@@ -4472,16 +4472,26 @@ updateDate();
 function navigate(page) {
   // ─── SECURITY : vérification des permissions d'accès à la page ───
   const publicPages = ['login', 'dashboard'];
-  if (!publicPages.includes(page) && !isSuperAdmin() && !hasPermission(page, 'read')) {
-    toast('⛔ Accès refusé', 'error');
-    const allowed = document.querySelector('.nav-item[data-nav-module]');
-    if (allowed) {
-      const firstPage = allowed.getAttribute('onclick')?.match(/navigate\('([^']+)'\)/)?.[1] || 'dashboard';
-      if (firstPage !== page) navigate(firstPage);
-    } else {
+  if (!publicPages.includes(page) && !isOwner()) {
+    // Vérifier accès plan
+    if (!hasModuleAccess(page)) {
+      const planName = GP_TENANT?.plan || 'starter';
+      toast(`⛔ Module non disponible dans le plan ${planName}`, 'error');
       navigate('dashboard');
+      return;
     }
-    return;
+    // Vérifier permissions rôle
+    if (!isSuperAdmin() && !hasPermission(page, 'read')) {
+      toast('⛔ Accès refusé', 'error');
+      const allowed = document.querySelector('.nav-item[data-nav-module]');
+      if (allowed) {
+        const firstPage = allowed.getAttribute('onclick')?.match(/navigate\('([^']+)'\)/)?.[1] || 'dashboard';
+        if (firstPage !== page) navigate(firstPage);
+      } else {
+        navigate('dashboard');
+      }
+      return;
+    }
   }
 
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
