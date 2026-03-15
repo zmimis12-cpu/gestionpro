@@ -6,6 +6,12 @@
 <title>GestionPro — Caisse & Stock</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
 <style>
   :root {
     --bg: #f0f4f8;
@@ -837,18 +843,6 @@
   .sb-logout:hover { opacity: 1; }
 
 </style>
-<script>
-// ─── GLOBAL UTILITY : escapeHTML ───
-function escapeHTML(str) {
-  if (str === null || str === undefined) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-</script>
 </head>
 <body>
 
@@ -858,30 +852,6 @@ function escapeHTML(str) {
     <div style="font-size:52px;animation:spin 1s linear infinite;">⏳</div>
     <div style="font-size:18px;font-weight:700;color:var(--accent);">Chargement des données...</div>
     <div style="font-size:13px;color:var(--text2);">Connexion à Supabase</div>
-  </div>
-
-  <!-- Écran expiration bloquant -->
-  <div id="expired-screen" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:9998;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
-    <div style="font-size:64px;margin-bottom:20px;">⏰</div>
-    <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;margin-bottom:10px;">Abonnement expiré</div>
-    <div style="font-size:14px;color:var(--text2);max-width:400px;line-height:1.6;margin-bottom:32px;">
-      Votre abonnement <strong id="expired-plan-name" style="color:var(--accent);"></strong> a expiré le <strong id="expired-date" style="color:var(--text);"></strong>.<br>
-      Renouvelez pour continuer à accéder à GestionPro.
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;">
-      <button onclick="navigate('abonnement');document.getElementById('expired-screen').style.display='none';"
-        style="padding:14px;border-radius:12px;background:var(--accent);color:#000;font-weight:800;border:none;cursor:pointer;font-size:15px;font-family:'Outfit',sans-serif;">
-        💳 Renouveler mon abonnement
-      </button>
-      <a id="expired-wa-link" href="#" target="_blank"
-        style="padding:12px;border-radius:12px;background:#25D366;color:#fff;font-weight:700;text-decoration:none;font-size:14px;display:block;">
-        💬 Contacter sur WhatsApp
-      </a>
-      <button onclick="doLogout()"
-        style="padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:13px;">
-        Se déconnecter
-      </button>
-    </div>
   </div>
 
   <!-- ══ LOGIN SCREEN ══ -->
@@ -894,8 +864,7 @@ function escapeHTML(str) {
       </div>
       <form onsubmit="doLogin();return false;" autocomplete="on">
       <div class="lf">
-        <label>Code d'accès</label>
-        <input type="text" id="l-code" placeholder="ex: mon-commerce" autocomplete="off" style="text-transform:lowercase;" oninput="this.value=this.value.toLowerCase().replace(/\s/g,'-')">
+
       </div>
       <div class="lf">
         <label>Email</label>
@@ -909,12 +878,9 @@ function escapeHTML(str) {
       </form>
       <div class="lerr" id="l-err"></div>
       <div style="text-align:center;margin-top:12px;">
-        <a onclick="openForgotPassword()" style="font-size:12px;color:#888;cursor:pointer;text-decoration:none;">🔑 Mot de passe oublié ?</a>
+        <a onclick="openForgotPassword()" style="font-size:12px;color:#888;cursor:pointer;">🔑 Mot de passe oublié ?</a>
       </div>
-      <div style="text-align:center;margin-top:10px;font-size:13px;color:#888;">
-        Pas encore de compte ? 
-        <a href="/signup" style="color:var(--accent);text-decoration:none;font-weight:600;">Créer un compte gratuitement →</a>
-      </div>
+<!-- demo section hidden in production -->
     </div>
   </div>
 
@@ -960,12 +926,6 @@ function escapeHTML(str) {
       <div class="nav-item" id="nav-alerts" onclick="navigate('alerts')" data-nav-module="alerts">
         <span class="icon">🔔</span> Alertes
         <span class="badge" id="alert-count">0</span>
-      </div>
-      <div class="nav-item" onclick="navigate('utilisateurs')" data-nav-module="utilisateurs" id="nav-utilisateurs">
-        <span class="icon">👥</span> Utilisateurs
-      </div>
-      <div class="nav-item" onclick="navigate('abonnement')" data-nav-module="abonnement" id="nav-abonnement">
-        <span class="icon">💳</span> Mon Abonnement
       </div>
       <div class="nav-item" onclick="navigate('settings')" data-nav-module="settings">
         <span class="icon">⚙️</span> Paramètres
@@ -1670,65 +1630,6 @@ function escapeHTML(str) {
       </div>
 
       <!-- ═══════════════════════════════ PARAMÈTRES ═══════════════════════════════ -->
-      <div class="page" id="page-abonnement">
-        <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:20px;">
-
-          <!-- Plan actuel -->
-          <div class="card">
-            <div class="card-header">💳 Mon Abonnement</div>
-            <div class="card-body">
-              <div id="abo-current-plan" style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);">
-                <div style="font-size:36px;" id="abo-plan-badge">⏳</div>
-                <div>
-                  <div style="font-weight:700;font-size:18px;" id="abo-plan-nom">Chargement...</div>
-                  <div style="font-size:13px;color:var(--text2);" id="abo-plan-expire"></div>
-                  <div style="font-size:13px;margin-top:4px;" id="abo-plan-status"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Plans disponibles -->
-          <div class="card">
-            <div class="card-header">🚀 Changer de Plan</div>
-            <div class="card-body">
-              <div id="abo-plans-list" style="display:flex;flex-direction:column;gap:12px;">
-                <div style="text-align:center;color:var(--text2);padding:20px;">Chargement des plans...</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Comment payer -->
-          <div class="card" id="abo-how-to-pay" style="display:none;">
-            <div class="card-header">🏦 Comment Payer</div>
-            <div class="card-body">
-              <div style="background:var(--surface2);border-radius:12px;padding:16px;border:1px solid rgba(0,212,170,0.2);">
-                <div style="font-weight:700;margin-bottom:12px;color:var(--accent);">Virement Bancaire</div>
-                <div id="abo-bank-details" style="font-size:13px;line-height:2;"></div>
-                <div style="margin-top:16px;padding:12px;background:rgba(245,166,35,0.1);border-radius:8px;border:1px solid rgba(245,166,35,0.3);">
-                  <div style="font-weight:700;color:var(--gold);margin-bottom:6px;">⚠️ Important</div>
-                  <div style="font-size:12px;color:var(--text2);">Mentionnez votre code client <strong id="abo-ref-code"></strong> dans le libellé du virement. Votre abonnement sera activé dans 24h après confirmation.</div>
-                </div>
-                <button onclick="openAboRequest()" style="margin-top:14px;width:100%;padding:12px;border-radius:10px;background:var(--accent);color:#000;font-weight:700;border:none;cursor:pointer;font-size:14px;">
-                  ✅ J'ai effectué le virement
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Historique -->
-          <div class="card">
-            <div class="card-header">📋 Historique des Abonnements</div>
-            <div class="card-body">
-              <div id="abo-history" style="display:flex;flex-direction:column;gap:8px;">
-                <div style="text-align:center;color:var(--text2);padding:20px;">Aucun historique</div>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
       <div class="page" id="page-settings">
         <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:20px;">
 
@@ -1868,27 +1769,6 @@ function escapeHTML(str) {
       </div>
 
       <!-- ═══════════════════════════════ SUPER ADMIN ═══════════════════════════════ -->
-
-      <!-- Page Utilisateurs (pour clients super_admin) -->
-      <div class="page" id="page-utilisateurs">
-        <div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:20px;">
-          <div class="card">
-            <div class="card-header">
-              <span>👥 Gestion des Utilisateurs</span>
-              <button class="btn btn-primary btn-sm" onclick="openSettingsUserModal()">➕ Nouvel utilisateur</button>
-            </div>
-            <div class="card-body" style="padding:12px;">
-              <table>
-                <thead><tr>
-                  <th>Nom</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Actions</th>
-                </tr></thead>
-                <tbody id="settings-users-table"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="page" id="page-superadmin">
         <!-- Tabs -->
         <div style="display:flex;gap:4px;margin-bottom:20px;background:var(--surface2);padding:4px;border-radius:10px;width:fit-content;">
@@ -1902,7 +1782,7 @@ function escapeHTML(str) {
         <!-- TAB : DASHBOARD SA -->
         <div id="sa-panel-dash">
           <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-            <button class="btn btn-danger" onclick="saResetAllData()" style="font-size:12px;padding:6px 14px;">🗑️ Supprimer toutes les données (reset test)</button>
+
           </div>
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;" id="sa-stats-grid"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="sa-locaux-cards"></div>
@@ -2121,17 +2001,6 @@ function escapeHTML(str) {
             <div class="stat-icon">💰</div>
             <div class="stat-value" id="oa-stat-revenue">0 MAD</div>
             <div class="stat-label">Revenus totaux</div>
-          </div>
-        </div>
-
-        <!-- Demandes de virement en attente -->
-        <div class="card" id="oa-pending-card" style="margin-bottom:16px;display:none;">
-          <div class="card-header" style="color:var(--gold);">
-            <span>⏳ Demandes de Virement en Attente</span>
-            <span id="oa-pending-count" style="background:var(--gold);color:#000;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;">0</span>
-          </div>
-          <div class="card-body" style="padding:12px;">
-            <div id="oa-pending-list"></div>
           </div>
         </div>
 
@@ -4597,38 +4466,6 @@ updateDate();
 
 // ─── NAVIGATION ───
 function navigate(page) {
-  // ─── SECURITY : vérification des permissions d'accès à la page ───
-  const publicPages = ['login', 'dashboard'];
-
-  // Superadmin réservé au owner pour "Mes Clients" uniquement
-  if (page === 'owner-admin' && !isOwner()) {
-    toast('⛔ Accès refusé', 'error');
-    navigate('dashboard');
-    return;
-  }
-
-  if (!publicPages.includes(page) && !isOwner()) {
-    // Vérifier accès plan
-    if (!hasModuleAccess(page)) {
-      const planName = GP_TENANT?.plan || 'starter';
-      toast(`⛔ Module non disponible dans le plan ${planName}`, 'error');
-      navigate('dashboard');
-      return;
-    }
-    // Vérifier permissions rôle
-    if (!isSuperAdmin() && !hasPermission(page, 'read')) {
-      toast('⛔ Accès refusé', 'error');
-      const allowed = document.querySelector('.nav-item[data-nav-module]');
-      if (allowed) {
-        const firstPage = allowed.getAttribute('onclick')?.match(/navigate\('([^']+)'\)/)?.[1] || 'dashboard';
-        if (firstPage !== page) navigate(firstPage);
-      } else {
-        navigate('dashboard');
-      }
-      return;
-    }
-  }
-
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -4687,8 +4524,6 @@ function navigate(page) {
   if (page === 'commandes') renderCommandes();
   if (page === 'docscont') renderOrdres();
   if (page === 'dashboard') renderDashboard();
-  if (page === 'utilisateurs') loadSettingsUsers();
-  if (page === 'abonnement') loadAbonnement();
   if (page === 'settings') loadSettingsForm();
   if (page === 'superadmin') renderSuperAdmin();
   if (page === 'employes') renderEmployes();
@@ -4935,7 +4770,7 @@ function executeTransfert() {
 
   renderStockTable();
   closeModal('modal-transfert');
-  toast(`✅ ${qty} × "${escapeHTML(p.name)}" transféré : ${fromNom} → ${toNom}${note ? ` (${note})` : ''}`, 'success');
+  toast(`✅ ${qty} × "${p.name}" transféré : ${fromNom} → ${toNom}${note ? ` (${note})` : ''}`, 'success');
 }
 
 // ─── MODALS ───
@@ -5630,7 +5465,7 @@ function renderProductGrid(resetPage) {
     return `<div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" onclick="addToCart('${p.id}')">
       <div class="product-stock-badge">${p.type==='tailles' ? '👕' : p.type==='couleurs' ? '🎨' : p.type==='kg' ? '⚖️' : p.stock}</div>
       ${photo}
-      <div class="product-name">${escapeHTML(p.name)}</div>
+      <div class="product-name">${p.name}</div>
       <div class="product-price">${p.price.toFixed(2)} MAD${p.type==='kg' ? '<span style="font-size:10px;color:var(--text2);"> /kg</span>' : ''}</div>
     </div>`;
   }).join('');
@@ -5664,7 +5499,7 @@ function addToCart(id) {
     const sizes = p.sizes || {};
     const availSizes = Object.entries(sizes).filter(([, qty]) => qty > 0);
     if (!availSizes.length) { toast(t('toast_stock_insuf'), 'warn'); return; }
-    document.getElementById('modal-size-product-name').textContent = `📦 ${escapeHTML(p.name)}`;
+    document.getElementById('modal-size-product-name').textContent = `📦 ${p.name}`;
     const btnContainer = document.getElementById('modal-size-buttons');
     btnContainer.innerHTML = availSizes.map(([sz, qty]) => `
       <button class="btn btn-secondary" style="min-width:70px;flex-direction:column;gap:2px;"
@@ -5681,7 +5516,7 @@ function addToCart(id) {
     const availColors = Object.entries(p.colors).filter(([, qty]) => qty > 0);
     if (!availColors.length && p.stock <= 0) { toast(t('toast_stock_insuf'), 'warn'); return; }
     if (availColors.length > 0) {
-      document.getElementById('modal-size-product-name').textContent = `🎨 ${escapeHTML(p.name)}`;
+      document.getElementById('modal-size-product-name').textContent = `🎨 ${p.name}`;
       const btnContainer = document.getElementById('modal-size-buttons');
       btnContainer.innerHTML = availColors.map(([col, qty]) => `
         <button class="btn btn-secondary" style="min-width:80px;flex-direction:column;gap:2px;"
@@ -5697,7 +5532,7 @@ function addToCart(id) {
   // Produit au KG — ouvrir modal saisie poids
   if (p.type === 'kg') {
     if (p.stock <= 0) { toast(t('toast_stock_insuf'), 'warn'); return; }
-    document.getElementById('modal-kg-product-name').textContent = `⚖️ ${escapeHTML(p.name)}`;
+    document.getElementById('modal-kg-product-name').textContent = `⚖️ ${p.name}`;
     document.getElementById('modal-kg-stock-info').textContent = `Stock disponible : ${p.stock} ${p.unit || 'Kg'}`;
     document.getElementById('modal-kg-prix-unit').textContent = `${p.price.toFixed(2)} MAD`;
     document.getElementById('modal-kg-poids').value = '';
@@ -5730,7 +5565,7 @@ function addToCartWithSize(id, size) {
     if (existing.qty >= availQty) { toast(t('toast_stock_insuf'), 'warn'); return; }
     existing.qty++;
   } else {
-    cart.push({ id, name: `${escapeHTML(p.name)} (${size})`, price: p.price, qty: 1, size, productId: id });
+    cart.push({ id, name: `${p.name} (${size})`, price: p.price, qty: 1, size, productId: id });
   }
   renderCart();
 }
@@ -5745,7 +5580,7 @@ function addToCartWithColor(id, color) {
     if (existing.qty >= availQty) { toast(t('toast_stock_insuf'), 'warn'); return; }
     existing.qty++;
   } else {
-    cart.push({ id, name: `${escapeHTML(p.name)} (${color})`, price: p.price, qty: 1, color, productId: id });
+    cart.push({ id, name: `${p.name} (${color})`, price: p.price, qty: 1, color, productId: id });
   }
   renderCart();
 }
@@ -5788,7 +5623,7 @@ function confirmKGAdd() {
     cart.push({
       id: pid,
       cartKey,
-      name: `${escapeHTML(p.name)}`,
+      name: `${p.name}`,
       price: p.price,       // prix par Kg
       qty: poids,            // poids en Kg
       unit: p.unit || 'Kg',
@@ -5798,7 +5633,7 @@ function confirmKGAdd() {
   }
   closeModal('modal-kg-select');
   renderCart();
-  toast(`✅ ${poids} ${p.unit||'Kg'} de ${escapeHTML(p.name)} ajouté`);
+  toast(`✅ ${poids} ${p.unit||'Kg'} de ${p.name} ajouté`);
 }
 
 function removeFromCartByKey(ck) {
@@ -5986,7 +5821,7 @@ function renderCart() {
         <div class="cart-item" style="flex-direction:column;align-items:stretch;gap:8px;">
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:14px;">⚖️</span>
-            <div class="cart-item-name" style="flex:1;">${escapeHTML(item.name)}</div>
+            <div class="cart-item-name" style="flex:1;">${item.name}</div>
             <button class="remove-btn" onclick="removeFromCartByKey('${ck}')">✕</button>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
@@ -6019,7 +5854,7 @@ function renderCart() {
     return `
     <div class="cart-item" style="flex-direction:column;align-items:stretch;gap:8px;">
       <div style="display:flex;align-items:center;gap:8px;">
-        <div class="cart-item-name" style="flex:1;">${escapeHTML(item.name)}</div>
+        <div class="cart-item-name" style="flex:1;">${item.name}</div>
         <button class="remove-btn" onclick="removeFromCartByKey('${ck}')">✕</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
@@ -6247,7 +6082,7 @@ function checkout(docType) {
     caisseOps.unshift({
       id: uid(), local_id: lid, type: 'vente',
       amount: fin.totalTTC,
-      label: `Vente (${sale.items.length} article${sale.items.length>1?'s':''}) — ${escapeHTML(sale.clientName)}`,
+      label: `Vente (${sale.items.length} article${sale.items.length>1?'s':''}) — ${sale.clientName}`,
       date: sale.date,
       payment: sale.payment
     });
@@ -6256,7 +6091,7 @@ function checkout(docType) {
     caisseOps.unshift({
       id: uid(), local_id: lid, type: 'credit_vente',
       amount: fin.totalTTC,
-      label: `Crédit client — ${escapeHTML(sale.clientName)} (${sale.items.length} art.)`,
+      label: `Crédit client — ${sale.clientName} (${sale.items.length} art.)`,
       date: sale.date,
       payment: 'Crédit'
     });
@@ -6336,7 +6171,7 @@ function buildInvoiceHTML(sale) {
       </div>
       <div>
         <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Client</div>
-        <div style="font-weight:700;font-size:13px;">${escapeHTML(sale.clientName)}</div>
+        <div style="font-weight:700;font-size:13px;">${sale.clientName}</div>
         <div style="font-size:12px;color:#555;line-height:1.7;margin-top:2px;">
           ${client && client.phone ? 'Tél : ' + client.phone + '<br>' : ''}
           ${clientAddr}
@@ -6349,11 +6184,11 @@ function buildInvoiceHTML(sale) {
       <div><div style="color:#888;font-size:10px;margin-bottom:2px;">Date de facturation</div><strong>${dateStr}</strong></div>
       <div><div style="color:#888;font-size:10px;margin-bottom:2px;">Numéro de facture</div><strong>${invoiceNum}</strong></div>
       <div><div style="color:#888;font-size:10px;margin-bottom:2px;">Échéance</div><strong>${dueDate}</strong></div>
-      <div><div style="color:#888;font-size:10px;margin-bottom:2px;">Paiement</div><strong>${escapeHTML(sale.payment)}</strong></div>
+      <div><div style="color:#888;font-size:10px;margin-bottom:2px;">Paiement</div><strong>${sale.payment}</strong></div>
       <div><div style="color:#888;font-size:10px;margin-bottom:2px;">Référence</div><strong>${sale.id.slice(-6).toUpperCase()}</strong></div>
     </div>
 
-    ${settings.invoiceNotes ? `<div style="margin-bottom:18px;font-size:12px;"><strong>Informations additionnelles :</strong><br><span style="color:#555;">${escapeHTML(settings.invoiceNotes)}</span></div>` : ''}
+    ${settings.invoiceNotes ? `<div style="margin-bottom:18px;font-size:12px;"><strong>Informations additionnelles :</strong><br><span style="color:#555;">${settings.invoiceNotes}</span></div>` : ''}
 
     <!-- ITEMS TABLE -->
     <table style="width:100%;border-collapse:collapse;margin-bottom:0;font-size:12px;">
@@ -6376,7 +6211,7 @@ function buildInvoiceHTML(sale) {
           const lineTVA = sale.tva > 0 ? lineHT * sale.tva / 100 : 0;
           const lineTTC = lineHT + lineTVA;
           return `<tr style="background:${idx%2===0?'#fff':'#f7f9fc'};">
-            <td style="padding:9px 12px;border-bottom:1px solid #e8e8e8;">${escapeHTML(item.name)}</td>
+            <td style="padding:9px 12px;border-bottom:1px solid #e8e8e8;">${item.name}</td>
             <td style="padding:9px 12px;text-align:center;border-bottom:1px solid #e8e8e8;">${item.qty}</td>
             <td style="padding:9px 12px;text-align:center;border-bottom:1px solid #e8e8e8;">${unit}</td>
             <td style="padding:9px 12px;text-align:right;border-bottom:1px solid #e8e8e8;">${item.price.toFixed(2)} ${currency}</td>
@@ -6490,8 +6325,8 @@ function buildReceiptHTML(sale) {
         ? `<img src="${settings.storeLogo}" style="max-height:50px;max-width:140px;object-fit:contain;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">`
         : ''}
       <div class="receipt-store">${settings.storeName || 'GestionPro'}</div>
-      ${settings.storeAddress ? `<div class="receipt-subtitle">${escapeHTML(settings.storeAddress)}</div>` : ''}
-      ${settings.storePhone ? `<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;">${escapeHTML(settings.storePhone)}</div>` : ''}
+      ${settings.storeAddress ? `<div class="receipt-subtitle">${settings.storeAddress}</div>` : ''}
+      ${settings.storePhone ? `<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;">${settings.storePhone}</div>` : ''}
       <div class="receipt-badge">✓ Reçu de caisse</div>
     </div>
     <div class="receipt-tear"></div>
@@ -6507,11 +6342,11 @@ function buildReceiptHTML(sale) {
         </div>
         <div class="receipt-meta-item">
           <div class="receipt-meta-label">👤 Client</div>
-          <div class="receipt-meta-value">${escapeHTML(sale.clientName)}</div>
+          <div class="receipt-meta-value">${sale.clientName}</div>
         </div>
         <div class="receipt-meta-item">
           <div class="receipt-meta-label">${sale.payment === 'Espèces' ? '💵' : sale.payment === 'Carte' ? '💳' : '📋'} Paiement</div>
-          <div class="receipt-meta-value">${escapeHTML(sale.payment)}</div>
+          <div class="receipt-meta-value">${sale.payment}</div>
         </div>
         <div class="receipt-meta-item" style="grid-column:1/-1;">
           <div class="receipt-meta-label">🔖 N° Reçu</div>
@@ -6550,7 +6385,7 @@ function buildReceiptHTML(sale) {
     </div>
     <div class="receipt-footer">
       <div class="receipt-footer-thanks">Merci pour votre confiance ! 🙏</div>
-      ${settings.invoiceNotes ? `<div style="margin-top:4px;font-size:10px;">${escapeHTML(settings.invoiceNotes)}</div>` : ''}
+      ${settings.invoiceNotes ? `<div style="margin-top:4px;font-size:10px;">${settings.invoiceNotes}</div>` : ''}
       <div class="receipt-barcode">| || ||| || | || ||| || ||| | || |||</div>
     </div>
   </div>`;
@@ -6819,7 +6654,7 @@ function renderAlerts() {
       <div class="alert-item ${urgent ? 'urgent' : 'warn'}">
         <div class="alert-icon">${urgent ? '🔴' : '🟡'}</div>
         <div class="alert-info">
-          <div class="alert-name">${escapeHTML(p.name)}</div>
+          <div class="alert-name">${p.name}</div>
           <div class="alert-detail">
             ${t('alert_current_stock')} : <strong>${p.stock} ${p.unit}</strong> —
             ${t('alert_min_req')} : <strong>${p.minStock} ${p.unit}</strong> —
@@ -6950,7 +6785,7 @@ function renderDashboard() {
       <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:8px;margin-bottom:8px;">
         <span style="font-size:18px;">${p.stock === 0 ? '🔴' : '🟡'}</span>
         <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;">${escapeHTML(p.name)}</div>
+          <div style="font-size:13px;font-weight:600;">${p.name}</div>
           <div style="font-size:11px;color:var(--text2);">Stock: ${p.stock} / Min: ${p.minStock}</div>
         </div>
         <span class="chip ${p.stock === 0 ? 'chip-red' : 'chip-orange'}">${p.stock === 0 ? t('stat_rupture') : t('stat_bas')}</span>
@@ -7575,7 +7410,7 @@ function renderRapports() {
         return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);">
           <div style="width:24px;text-align:center;font-size:16px;">${icon}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHTML(p.name)}</div>
+            <div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.name}</div>
             <div style="height:5px;background:var(--surface2);border-radius:3px;margin-top:5px;overflow:hidden;">
               <div style="height:100%;width:${bar}%;background:linear-gradient(90deg,var(--accent),rgba(0,212,170,0.5));border-radius:3px;transition:width 0.4s;"></div>
             </div>
@@ -7694,16 +7529,16 @@ function renderMonthChart() {
 // ╚══════════════════════════════════════════════════════════════╝
 const PLAN_MODULES = {
   starter: [
-    'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings', 'depenses', 'utilisateurs', 'abonnement'
+    'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings', 'depenses'
   ],
   business: [
     'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings',
-    'locaux', 'employes', 'conges', 'fonds', 'commandes', 'depenses', 'utilisateurs', 'abonnement'
+    'locaux', 'employes', 'conges', 'fonds', 'commandes', 'depenses'
   ],
   premium: [
     'dashboard', 'caisse', 'stock', 'clients', 'alerts', 'settings',
     'locaux', 'employes', 'conges', 'fonds', 'commandes',
-    'conteneurs', 'docscont', 'livraisons', 'docs-rh', 'docs_rh', 'docs-admin', 'docs_admin', 'superadmin', 'depenses', 'utilisateurs', 'abonnement'
+    'conteneurs', 'docscont', 'livraisons', 'docs-rh', 'docs_rh', 'docs-admin', 'docs_admin', 'superadmin', 'depenses'
   ]
 };
 
@@ -7735,245 +7570,11 @@ function isOwner() {
   return isSuperAdmin() && GP_TENANT?.is_owner === true;
 }
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║              ABONNEMENT — PAGE CLIENT                        ║
-// ╚══════════════════════════════════════════════════════════════╝
-
-let ABO_SELECTED_PLAN = null;
-
-// ╔══════════════════════════════════════════════════════════════╗
-// ║         GESTION UTILISATEURS — PAGE CLIENT                   ║
-// ╚══════════════════════════════════════════════════════════════╝
-
-let SETTINGS_USERS = [];
-
-async function loadSettingsUsers() {
-  try {
-    const { data, error } = await sb.from('gp_users')
-      .select('id,nom,email,role,actif,created_at')
-      .eq('tenant_id', GP_TENANT.id)
-      .order('created_at');
-    if (error) throw error;
-    SETTINGS_USERS = data || [];
-    renderSettingsUsers();
-  } catch(e) {
-    console.warn('[Users] load error:', e.message);
-  }
-}
-
-function renderSettingsUsers() {
-  const tbody = document.getElementById('settings-users-table');
-  if (!tbody) return;
-  if (!SETTINGS_USERS.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:20px;">Aucun utilisateur</td></tr>`;
-    return;
-  }
-  const roleLabels = { super_admin:'👑 Super Admin', admin:'🔧 Admin', caissier:'💰 Caissier', magasinier:'📦 Magasinier', livreur:'🚚 Livreur' };
-  tbody.innerHTML = SETTINGS_USERS.map(u => `
-    <tr>
-      <td>${escapeHTML(u.nom || '—')}</td>
-      <td style="font-size:12px;">${escapeHTML(u.email)}</td>
-      <td><span style="font-size:12px;">${roleLabels[u.role] || u.role}</span></td>
-      <td><span style="color:${u.actif ? 'var(--accent)' : 'var(--red)'};">${u.actif ? '✅ Actif' : '❌ Inactif'}</span></td>
-      <td>
-        <button onclick="toggleSettingsUser('${u.id}',${u.actif})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;cursor:pointer;">
-          ${u.actif ? 'Désactiver' : 'Activer'}
-        </button>
-        ${u.id !== GP_USER.id ? `<button onclick="deleteSettingsUser('${u.id}','${escapeHTML(u.nom)}')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(224,49,49,0.3);background:transparent;color:var(--red);font-size:11px;cursor:pointer;margin-left:4px;">🗑️</button>` : ''}
-      </td>
-    </tr>`).join('');
-}
-
-function openSettingsUserModal() {
-  // Réutiliser le modal existant du Super Admin
-  document.getElementById('sau-id').value = '';
-  document.getElementById('sau-nom').value = '';
-  document.getElementById('sau-email').value = '';
-  document.getElementById('sau-role').value = 'caissier';
-  document.getElementById('sau-pwd').value = '';
-  const pwdGroup = document.getElementById('sau-pwd-group');
-  if (pwdGroup) pwdGroup.style.display = 'block';
-  openModal('modal-sa-user');
-}
-
-async function toggleSettingsUser(userId, currentActif) {
-  try {
-    await sb.from('gp_users').update({ actif: !currentActif }).eq('id', userId);
-    await loadSettingsUsers();
-    toast(currentActif ? 'Utilisateur désactivé' : 'Utilisateur activé ✅');
-  } catch(e) {
-    toast('Erreur: ' + e.message, 'error');
-  }
-}
-
-async function deleteSettingsUser(userId, nom) {
-  if (!confirm(`Supprimer "${nom}" ?`)) return;
-  try {
-    await sb.from('gp_users').delete().eq('id', userId);
-    await loadSettingsUsers();
-    toast(`🗑️ ${nom} supprimé`);
-  } catch(e) {
-    toast('Erreur: ' + e.message, 'error');
-  }
-}
-
-async function loadAbonnement() {
-  try {
-    // Charger plans
-    const { data: plans } = await sb.from('gp_plans').select('*').eq('actif', true).order('prix_mensuel');
-    // Charger historique subscriptions du tenant
-    const { data: subs } = await sb.from('gp_subscriptions')
-      .select('*').eq('tenant_id', GP_TENANT.id).order('created_at', { ascending: false });
-
-    renderAboPlanActuel();
-    renderAboPlans(plans || []);
-    renderAboHistory(subs || []);
-  } catch(e) {
-    console.warn('[ABO] loadAbonnement:', e.message);
-  }
-}
-
-function renderAboPlanActuel() {
-  const plan = GP_TENANT?.plan || 'starter';
-  const expire = GP_TENANT?.expire_at;
-  const badges = { starter:'🥉', business:'🥈', premium:'🥇' };
-  const noms   = { starter:'Starter', business:'Business', premium:'Premium' };
-  const now = new Date();
-  const expDate = expire ? new Date(expire) : null;
-  const expired = expDate && expDate < now;
-  const soon    = expDate && !expired && expDate < new Date(now.getTime() + 5*24*60*60*1000);
-
-  const badge = document.getElementById('abo-plan-badge');
-  const nom   = document.getElementById('abo-plan-nom');
-  const expEl = document.getElementById('abo-plan-expire');
-  const statEl= document.getElementById('abo-plan-status');
-
-  if (badge) badge.textContent = badges[plan] || '📦';
-  if (nom)   nom.textContent   = noms[plan] || plan;
-  if (expEl) expEl.textContent = expDate
-    ? (expDate.getFullYear() > 2090 ? 'Abonnement à vie ♾️' : 'Expire le ' + expDate.toLocaleDateString('fr-FR'))
-    : "Pas de date d'expiration";
-  if (statEl) {
-    if (expired)     { statEl.innerHTML = '<span style="color:var(--red);">❌ Abonnement expiré</span>'; }
-    else if (soon)   { statEl.innerHTML = '<span style="color:var(--gold);">⚠️ Expire bientôt</span>'; }
-    else             { statEl.innerHTML = '<span style="color:var(--accent);">✅ Actif</span>'; }
-  }
-}
-
-function renderAboPlans(plans) {
-  const el = document.getElementById('abo-plans-list');
-  if (!el) return;
-  if (!plans.length) { el.innerHTML = '<div style="color:var(--text2);text-align:center;">Aucun plan disponible</div>'; return; }
-
-  const currentPlan = GP_TENANT?.plan || 'starter';
-  const badges = { starter:'🥉', business:'🥈', premium:'🥇' };
-
-  el.innerHTML = plans.map(p => {
-    const isCurrent = p.id === currentPlan;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface2);border-radius:12px;border:2px solid ${isCurrent ? 'var(--accent)' : 'var(--border)'};flex-wrap:wrap;">
-      <div style="font-size:28px;">${badges[p.id] || '📦'}</div>
-      <div style="flex:1;min-width:120px;">
-        <div style="font-weight:700;font-size:15px;">${p.nom} ${isCurrent ? '<span style="font-size:11px;background:var(--accent);color:#000;padding:2px 8px;border-radius:20px;margin-left:6px;">Actuel</span>' : ''}</div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px;">${Array.isArray(p.modules) ? p.modules.length : JSON.parse(p.modules||'[]').length} modules • max ${p.max_users > 50 ? '∞' : p.max_users} utilisateurs</div>
-      </div>
-      <div style="text-align:right;min-width:100px;">
-        <div style="font-weight:700;font-size:16px;color:var(--accent);">${p.prix_mensuel} MAD<span style="font-size:11px;font-weight:400;color:var(--text2);">/mois</span></div>
-        <div style="font-size:11px;color:var(--text2);">${p.prix_annuel} MAD/an</div>
-      </div>
-      ${!isCurrent ? `<button onclick="selectAboPlan('${p.id}','${p.nom}',${p.prix_mensuel},${p.prix_annuel})" style="padding:8px 16px;border-radius:8px;background:var(--accent);color:#000;font-weight:700;border:none;cursor:pointer;font-size:13px;">Choisir</button>` : ''}
-    </div>`;
-  }).join('');
-}
-
-function renderAboHistory(subs) {
-  const el = document.getElementById('abo-history');
-  if (!el) return;
-  if (!subs.length) { el.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;">Aucun historique</div>'; return; }
-
-  const statutColors = { active:'var(--accent)', expired:'var(--red)', pending:'var(--gold)', cancelled:'var(--text2)', trial:'#a78bfa' };
-  const statutLabels = { active:'Actif', expired:'Expiré', pending:'⏳ En attente', cancelled:'Annulé', trial:'Essai' };
-
-  el.innerHTML = subs.map(s => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);flex-wrap:wrap;">
-      <div style="flex:1;min-width:120px;">
-        <div style="font-weight:700;font-size:13px;text-transform:capitalize;">${s.plan_id || '—'}</div>
-        <div style="font-size:11px;color:var(--text2);">${new Date(s.created_at).toLocaleDateString('fr-FR')}</div>
-      </div>
-      <div style="font-size:13px;font-weight:700;color:var(--accent);">${s.montant > 0 ? s.montant + ' MAD' : '—'}</div>
-      <div style="font-size:12px;font-weight:700;color:${statutColors[s.statut] || 'var(--text2)'};">${statutLabels[s.statut] || s.statut}</div>
-      ${s.notes ? `<div style="font-size:11px;color:var(--text2);width:100%;">${escapeHTML(s.notes)}</div>` : ''}
-    </div>`).join('');
-}
-
-function selectAboPlan(planId, planNom, prixMensuel, prixAnnuel) {
-  ABO_SELECTED_PLAN = { id: planId, nom: planNom, prix_mensuel: prixMensuel, prix_annuel: prixAnnuel };
-  // Afficher coordonnées bancaires
-  const bankDiv = document.getElementById('abo-bank-details');
-  const settings = GP_SETTINGS || {};
-  const storeName = settings.storeName || 'GestionPro';
-  if (bankDiv) {
-    bankDiv.innerHTML = `
-      <div><strong>Bénéficiaire :</strong> ${escapeHTML(storeName)}</div>
-      <div><strong>Plan :</strong> ${escapeHTML(planNom)}</div>
-      <div><strong>Mensuel :</strong> ${prixMensuel} MAD / <strong>Annuel :</strong> ${prixAnnuel} MAD</div>
-      <div style="margin-top:8px;font-size:12px;color:var(--text2);">Contactez-nous sur WhatsApp pour obtenir les coordonnées bancaires complètes.</div>`;
-  }
-  const refEl = document.getElementById('abo-ref-code');
-  if (refEl) refEl.textContent = GP_TENANT?.code || '';
-  const howToPay = document.getElementById('abo-how-to-pay');
-  if (howToPay) howToPay.style.display = 'block';
-  howToPay.scrollIntoView({ behavior: 'smooth' });
-}
-
-function openAboRequest() {
-  if (!ABO_SELECTED_PLAN) return;
-  document.getElementById('abo-req-plan-label').textContent = `${ABO_SELECTED_PLAN.nom} — ${ABO_SELECTED_PLAN.prix_mensuel} MAD/mois ou ${ABO_SELECTED_PLAN.prix_annuel} MAD/an`;
-  document.getElementById('abo-req-montant').value = ABO_SELECTED_PLAN.prix_mensuel;
-  document.getElementById('abo-req-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('abo-req-notes').value = '';
-  openModal('modal-abo-request');
-}
-
-async function submitAboRequest() {
-  const montant = parseFloat(document.getElementById('abo-req-montant').value) || 0;
-  const dateVir = document.getElementById('abo-req-date').value;
-  const notes   = document.getElementById('abo-req-notes').value.trim();
-  if (!montant || !dateVir) { toast('Montant et date obligatoires', 'error'); return; }
-
-  try {
-    // Créer subscription avec statut "pending"
-    await sb.from('gp_subscriptions').insert({
-      tenant_id: GP_TENANT.id,
-      plan_id: ABO_SELECTED_PLAN.id,
-      statut: 'pending',
-      date_debut: new Date().toISOString(),
-      montant,
-      methode: 'virement',
-      notes: `Virement du ${dateVir}. ${notes}`
-    });
-    closeModal('modal-abo-request');
-    toast('✅ Demande envoyée ! Activation sous 24h après vérification.');
-    await loadAbonnement();
-  } catch(e) {
-    toast('Erreur: ' + e.message, 'error');
-  }
-}
-
 // Charger tous les tenants depuis Supabase
-let OA_PLANS = [];        // plans disponibles
-let OA_SUBSCRIPTIONS = []; // historique subscriptions
-
 async function loadOAData() {
   try {
-    const [tenantsRes, plansRes, subsRes] = await Promise.all([
-      sb.from('gp_tenants').select('id, nom, code, actif, plan, expire_at, is_owner, created_at, notes').order('created_at', { ascending: false }),
-      sb.from('gp_plans').select('*').eq('actif', true).order('prix_mensuel'),
-      sb.from('gp_subscriptions').select('*').order('created_at', { ascending: false })
-    ]);
-
-    OA_TENANTS       = tenantsRes.data || [];
-    OA_PLANS         = plansRes.data   || [];
-    OA_SUBSCRIPTIONS = subsRes.data    || [];
+    const { data: tenants } = await sb.from('gp_tenants').select('id, nom, code, actif, plan, expire_at, is_owner, created_at').order('created_at', { ascending: false });
+    OA_TENANTS = tenants || [];
 
     // Charger paiements si table existe
     try {
@@ -7982,75 +7583,9 @@ async function loadOAData() {
     } catch(e) { OA_PAYMENTS = []; }
 
     renderOAStats();
-    renderOAPending();
     renderOATenants();
   } catch(e) {
     console.warn('[OA] loadOAData:', e.message);
-  }
-}
-
-function renderOAPending() {
-  const pending = OA_SUBSCRIPTIONS.filter(s => s.statut === 'pending');
-  const card = document.getElementById('oa-pending-card');
-  const list = document.getElementById('oa-pending-list');
-  const cnt  = document.getElementById('oa-pending-count');
-  if (!card || !list) return;
-
-  if (!pending.length) { card.style.display = 'none'; return; }
-  card.style.display = 'block';
-  if (cnt) cnt.textContent = pending.length;
-
-  list.innerHTML = pending.map(s => {
-    const tenant = OA_TENANTS.find(t => t.id === s.tenant_id);
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--surface2);border-radius:10px;margin-bottom:8px;border:1px solid rgba(245,166,35,0.3);flex-wrap:wrap;">
-      <div style="flex:1;min-width:150px;">
-        <div style="font-weight:700;font-size:14px;">${escapeHTML(tenant?.nom || 'Client inconnu')}</div>
-        <div style="font-size:12px;color:var(--text2);">Plan: <strong>${s.plan_id}</strong> • ${s.montant} MAD</div>
-        <div style="font-size:11px;color:var(--text2);">${new Date(s.created_at).toLocaleDateString('fr-FR')} ${s.notes ? '• ' + escapeHTML(s.notes.substring(0,60)) : ''}</div>
-      </div>
-      <div style="display:flex;gap:6px;">
-        <button onclick="confirmVirement('${s.id}','${s.tenant_id}','${s.plan_id}',${s.montant})" style="padding:7px 14px;border-radius:8px;background:var(--accent);color:#000;font-weight:700;border:none;cursor:pointer;font-size:12px;">✅ Confirmer</button>
-        <button onclick="rejectVirement('${s.id}')" style="padding:7px 14px;border-radius:8px;border:1px solid var(--red);background:transparent;color:var(--red);font-weight:700;cursor:pointer;font-size:12px;">❌ Refuser</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function confirmVirement(subId, tenantId, planId, montant) {
-  if (!confirm("Confirmer ce virement et activer l'abonnement ?")) return;
-  try {
-    const duree = 30; // 1 mois par défaut
-    const expireAt = new Date(Date.now() + duree * 24 * 60 * 60 * 1000).toISOString();
-
-    // Mettre à jour subscription
-    await sb.from('gp_subscriptions').update({
-      statut: 'active',
-      date_debut: new Date().toISOString(),
-      date_fin: expireAt
-    }).eq('id', subId);
-
-    // Mettre à jour tenant
-    await sb.from('gp_tenants').update({
-      plan: planId,
-      actif: true,
-      expire_at: expireAt
-    }).eq('id', tenantId);
-
-    toast('✅ Abonnement activé !');
-    await loadOAData();
-  } catch(e) {
-    toast('Erreur: ' + e.message, 'error');
-  }
-}
-
-async function rejectVirement(subId) {
-  if (!confirm("Refuser cette demande ?")) return;
-  try {
-    await sb.from('gp_subscriptions').update({ statut: 'cancelled' }).eq('id', subId);
-    toast('Demande refusée');
-    await loadOAData();
-  } catch(e) {
-    toast('Erreur: ' + e.message, 'error');
   }
 }
 
@@ -8062,8 +7597,7 @@ function renderOAStats() {
   const actifs  = OA_TENANTS.filter(t => t.actif && (!t.expire_at || new Date(t.expire_at) > now)).length;
   const soon    = OA_TENANTS.filter(t => t.actif && t.expire_at && new Date(t.expire_at) > now && new Date(t.expire_at) <= in5days).length;
   const expired = OA_TENANTS.filter(t => !t.actif || (t.expire_at && new Date(t.expire_at) < now)).length;
-  const revenue = OA_SUBSCRIPTIONS.reduce((s, p) => s + (p.montant || 0), 0) ||
-                  OA_PAYMENTS.reduce((s, p) => s + (p.montant || 0), 0);
+  const revenue = OA_PAYMENTS.reduce((s, p) => s + (p.montant || 0), 0);
 
   const el = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
   el('oa-stat-total', total);
@@ -8124,13 +7658,8 @@ function renderOATenants() {
         <div style="font-size:13px;font-weight:700;">${expireStr}</div>
       </div>
       <div style="text-align:center;min-width:80px;">
-        <div style="font-size:11px;color:var(--text2);">Payé total</div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent);">${(() => {
-          const subTotal = OA_SUBSCRIPTIONS.filter(s => s.tenant_id === t.id).reduce((sum, s) => sum + (s.montant||0), 0);
-          const payTotal = OA_PAYMENTS.filter(p => p.tenant_id === t.id).reduce((sum, p) => sum + (p.montant||0), 0);
-          const total = subTotal || payTotal;
-          return total > 0 ? fmt(total) + ' MAD' : '—';
-        })()}</div>
+        <div style="font-size:11px;color:var(--text2);">Payé</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);">${totalPay > 0 ? fmt(totalPay) : '—'}</div>
       </div>
       <div style="text-align:center;min-width:70px;">
         <span style="color:${statusColor};font-weight:700;font-size:13px;">${statusIcon} ${statusLabel}</span>
@@ -8214,50 +7743,22 @@ async function saveOATenant() {
 
       // Créer le super admin du client
       if (email && pwd) {
-        // 1. Créer compte Supabase Auth via Edge Function (sans casser la session active)
-        const efRes = await fetch(`${SUPABASE_URL}/functions/v1/create-tenant-user`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON}`
-          },
-          body: JSON.stringify({ email, password: pwd, tenantId, nom })
-        });
-        const efData = await efRes.json();
-        if (!efRes.ok) console.warn('[OA] Edge Function error:', efData.error);
-        const authId = efData.auth_id || null;
-
-        // 2. Créer dans gp_users avec auth_id
         const { error: ue } = await sb.from('gp_users').insert({
           id: 'U' + Date.now(),
           tenant_id: tenantId,
-          nom: nom, email,
-          password: await hashPassword(pwd),
-          role: 'super_admin', actif: true,
-          auth_id: authId
+          nom: nom, email, password: await hashPassword(pwd),
+          role: 'super_admin', actif: true
         });
         if (ue) console.warn('User creation error:', ue.message);
       }
       toast(`Client "${nom}" créé ✅`);
     }
 
-    // Enregistrer subscription dans gp_subscriptions
-    await sb.from('gp_subscriptions').insert({
-      tenant_id: tenantId,
-      plan_id: plan,
-      statut: 'active',
-      date_debut: new Date().toISOString(),
-      date_fin: expireAt,
-      montant: montant,
-      methode: 'manuel',
-      notes: notes || `${id ? 'Renouvellement' : 'Création'} ${plan}`
-    });
-
     // Enregistrer paiement si montant > 0
     if (montant > 0) {
       await sb.from('gp_payments').insert({
         tenant_id: tenantId, montant,
-        methode: 'manuel', notes: `Création/renouvellement ${plan}`
+        methode: 'whatsapp', notes: `Création/renouvellement ${plan}`
       });
     }
 
@@ -8362,15 +7863,12 @@ Cette action est irréversible !`)) return;
     for (const tbl of tables) {
       try { await sb.from(tbl).delete().eq('tenant_id', tenantId); } catch(e) {}
     }
-    // Supprimer subscriptions du tenant
-    try { await sb.from('gp_subscriptions').delete().eq('tenant_id', tenantId); } catch(e) {}
     // Supprimer les users du tenant
-    try { await sb.from('gp_users').delete().eq('tenant_id', tenantId); } catch(e) {}
+    await sb.from('gp_users').delete().eq('tenant_id', tenantId);
     // Supprimer le tenant
     const { error } = await sb.from('gp_tenants').delete().eq('id', tenantId);
     if (error) throw error;
     OA_TENANTS = OA_TENANTS.filter(t => t.id !== tenantId);
-    OA_SUBSCRIPTIONS = OA_SUBSCRIPTIONS.filter(s => s.tenant_id !== tenantId);
     toast(`🗑️ Client "${nom}" supprimé`);
     renderOAStats();
     renderOATenants();
@@ -9050,7 +8548,7 @@ function viewConteneur(id) {
     </tr>
   `).join('');
 
-  document.getElementById('cont-detail-title').textContent = `🚢 Conteneur ${escapeHTML(c.numero)}`;
+  document.getElementById('cont-detail-title').textContent = `🚢 Conteneur ${c.numero}`;
   document.getElementById('cont-detail-content').innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;font-size:13px;">
       <div style="background:var(--surface2);border-radius:8px;padding:12px;"><div style="color:var(--text2);font-size:10px;text-transform:uppercase;">Fournisseur</div><strong>${c.fournisseur||'—'}</strong></div>
@@ -9104,7 +8602,7 @@ function addToStockFromConteneur(id) {
   // Résumé avant confirmation
   const nouveaux = c.refs.filter(r => !products.find(p => p.code === r.refCode)).length;
   const miseAjour = c.refs.length - nouveaux;
-  const msg = `Conteneur ${escapeHTML(c.numero)}\n\n` +
+  const msg = `Conteneur ${c.numero}\n\n` +
     `• ${nouveaux} nouvelle(s) référence(s) → créées dans le stock\n` +
     `• ${miseAjour} référence(s) existante(s) → stock mis à jour\n\n` +
     `Confirmer l'ajout au stock ?`;
@@ -9202,7 +8700,7 @@ function renderConteneurs() {
         <div style="padding:14px;border-bottom:1px solid var(--border);">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
             <div>
-              <div style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;">${escapeHTML(c.numero)}</div>
+              <div style="font-size:16px;font-weight:800;font-family:'JetBrains Mono',monospace;">${c.numero}</div>
               <div style="font-size:12px;color:var(--text2);">${c.fournisseur||''} ${c.pays?'• '+c.pays:''} ${c.type?'• '+c.type:''}</div>
             </div>
             <span style="padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${sColor}22;color:${sColor};">${sLabel}</span>
@@ -9839,7 +9337,7 @@ function viewLocal(id) {
     const benef = p.price - cost;
     const statusCls = p.stock===0?'chip-red':p.stock<p.minStock?'chip-orange':'chip-green';
     return `<tr style="background:${i%2===0?'var(--surface)':'var(--surface2)'}">
-      <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px;">${escapeHTML(p.name)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-weight:600;font-size:12px;">${p.name}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text2);">${p.code||'—'}</td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;"><span class="chip chip-purple">${p.category||'—'}</span></td>
       <td style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;font-family:'JetBrains Mono',monospace;">${p.stock} ${p.unit||''}</td>
@@ -10356,7 +9854,7 @@ function updateEmployeSelects() {
   const blSel = document.getElementById('bl-prod-select');
   if (blSel) {
     blSel.innerHTML = `<option value="">Sélectionner un produit...</option>` +
-      products.map(p => `<option value="${p.id}">${escapeHTML(p.name)} (Stock: ${p.stock} ${p.unit||''})</option>`).join('');
+      products.map(p => `<option value="${p.id}">${p.name} (Stock: ${p.stock} ${p.unit||''})</option>`).join('');
   }
 }
 
@@ -10403,7 +9901,7 @@ function renderConges() {
   tbody.innerHTML = filtered.map(c => {
     const emp = employes.find(e => e.id === c.empId);
     return `<tr>
-      <td><strong>${emp?.name||'—'}</strong>${emp?.poste?`<br><small style="color:var(--text2);">${escapeHTML(emp.poste)}</small>`:''}</td>
+      <td><strong>${emp?.name||'—'}</strong>${emp?.poste?`<br><small style="color:var(--text2);">${emp.poste}</small>`:''}</td>
       <td>${typeLabel[c.type]||c.type}</td>
       <td>${c.debut||'—'}</td>
       <td>${c.fin||'—'}</td>
@@ -10516,9 +10014,9 @@ function renderLivraisons() {
     retour:`<span style="background:rgba(255,71,87,.12);color:var(--red);padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">↩️ Retour</span>`
   };
   tbody.innerHTML = filtered.map(bl => `<tr>
-    <td><strong style="font-family:'JetBrains Mono',monospace;">${escapeHTML(bl.numero)}</strong></td>
+    <td><strong style="font-family:'JetBrains Mono',monospace;">${bl.numero}</strong></td>
     <td style="font-size:12px;color:var(--text2);">${bl.date||'—'}</td>
-    <td><strong>${bl.client||'—'}</strong>${bl.adresse?`<br><small style="color:var(--text2);">${escapeHTML(bl.adresse)}</small>`:''}</td>
+    <td><strong>${bl.client||'—'}</strong>${bl.adresse?`<br><small style="color:var(--text2);">${bl.adresse}</small>`:''}</td>
     <td>${bl.chauffeur||'—'}</td>
     <td>${(bl.articles||[]).length} articles</td>
     <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent);">${(bl.valeur||0).toLocaleString('fr-MA',{maximumFractionDigits:2})} MAD</td>
@@ -10558,7 +10056,7 @@ function openBLModal(id) {
   // populate product select
   const sel = document.getElementById('bl-prod-select');
   sel.innerHTML = `<option value="">Sélectionner un produit...</option>` +
-    products.map(p=>`<option value="${p.id}">${escapeHTML(p.name)}</option>`).join('');
+    products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
   renderBLArticlesTemp();
   openModal('modal-bl');
 }
@@ -10631,7 +10129,7 @@ function printBL(id) {
   if (!bl) return;
   const store = settings.storeName || 'GestionPro';
   const logo = settings.storeLogo ? `<img src="${settings.storeLogo}" style="height:60px;object-fit:contain;">` : '';
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BL ${escapeHTML(bl.numero)}</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>BL ${bl.numero}</title>
   <style>body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:30px;color:#111;}
   .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #00d4aa;padding-bottom:16px;margin-bottom:20px;}
   .bl-title{font-size:28px;font-weight:800;color:#00d4aa;}
@@ -10649,17 +10147,17 @@ function printBL(id) {
   .sig-area{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:30px;}
   .sig-box{border-top:2px dashed #ccc;padding-top:8px;font-size:12px;color:#888;}
   @media print{body{padding:10px;}}</style></head><body>
-  <div class="header"><div>${logo}<div class="bl-title">Bon de Livraison</div><div style="font-size:22px;font-weight:800;color:#555;margin-top:4px;">${escapeHTML(bl.numero)}</div></div>
+  <div class="header"><div>${logo}<div class="bl-title">Bon de Livraison</div><div style="font-size:22px;font-weight:800;color:#555;margin-top:4px;">${bl.numero}</div></div>
   <div style="text-align:right;"><div style="font-size:15px;font-weight:700;">${store}</div><div style="font-size:12px;color:#888;">${settings.storeAddress||''}</div><div style="font-size:12px;color:#888;">${settings.storePhone||''}</div></div></div>
   <div class="info-grid">
-    <div class="info-block"><label>Client / Destinataire</label><span>${escapeHTML(bl.client)}</span>${bl.tel?`<br><small>${escapeHTML(bl.tel)}</small>`:''}<br>${bl.adresse||''}</div>
-    <div class="info-block"><label>Livraison</label><span>${bl.date||'—'}</span><br><small>Chauffeur: ${bl.chauffeur||'—'}</small><br><small>Véhicule: ${bl.vehicule||'—'}</small><br><span class="statut st-${escapeHTML(bl.statut)}">${{en_cours:'🔄 En cours',livre:'✅ Livré',retour:'↩️ Retour'}[bl.statut]||bl.statut}</span></div>
+    <div class="info-block"><label>Client / Destinataire</label><span>${bl.client}</span>${bl.tel?`<br><small>${bl.tel}</small>`:''}<br>${bl.adresse||''}</div>
+    <div class="info-block"><label>Livraison</label><span>${bl.date||'—'}</span><br><small>Chauffeur: ${bl.chauffeur||'—'}</small><br><small>Véhicule: ${bl.vehicule||'—'}</small><br><span class="statut st-${bl.statut}">${{en_cours:'🔄 En cours',livre:'✅ Livré',retour:'↩️ Retour'}[bl.statut]||bl.statut}</span></div>
   </div>
   <h3>Articles</h3>
   <table><thead><tr><th>Désignation</th><th>Qté</th><th>Unité</th><th>Prix unit.</th><th>Total</th></tr></thead>
   <tbody>${(bl.articles||[]).map(a=>`<tr><td>${a.name}</td><td style="font-weight:700;">${a.qty}</td><td>${a.unit||''}</td><td>${a.prixU?.toFixed(2)||'—'} MAD</td><td style="font-weight:700;">${(a.prixU*a.qty).toFixed(2)} MAD</td></tr>`).join('')}
   <tr class="total-row"><td colspan="4" style="text-align:right;">TOTAL</td><td>${bl.valeur?.toFixed(2)||'0.00'} MAD</td></tr></tbody></table>
-  ${bl.notes?`<div style="background:#f8f8f8;padding:12px;border-radius:8px;font-size:13px;margin-bottom:20px;"><strong>Notes:</strong> ${escapeHTML(bl.notes)}</div>`:''}
+  ${bl.notes?`<div style="background:#f8f8f8;padding:12px;border-radius:8px;font-size:13px;margin-bottom:20px;"><strong>Notes:</strong> ${bl.notes}</div>`:''}
   <div class="sig-area"><div class="sig-box">Signature expéditeur :<br><br><br></div><div class="sig-box">Signature destinataire :<br><br><br></div></div>
   <script>window.print();<\/script></body></html>`;
   const _blob = new Blob([html], {type:'text/html;charset=utf-8'});
@@ -10737,7 +10235,7 @@ function imprimerDocRH(doc, emp) {
     corps = `
       <p>Je soussigné(e), la Direction de <strong>${store}</strong>, certifie par la présente que :</p>
       <div class="emp-card">
-        <div><strong>M. / Mme :</strong> ${escapeHTML(emp.name)} ${emp.prenom||''}</div>
+        <div><strong>M. / Mme :</strong> ${emp.name} ${emp.prenom||''}</div>
         <div><strong>CIN :</strong> ${emp.cin||'—'}</div>
         <div><strong>Poste :</strong> ${emp.poste||'—'}</div>
         <div><strong>Département :</strong> ${emp.dept||'—'}</div>
@@ -10751,7 +10249,7 @@ function imprimerDocRH(doc, emp) {
     corps = `
       <p>Je soussigné(e), la Direction de <strong>${store}</strong>, atteste que :</p>
       <div class="emp-card">
-        <div><strong>M. / Mme :</strong> ${escapeHTML(emp.name)} ${emp.prenom||''}</div>
+        <div><strong>M. / Mme :</strong> ${emp.name} ${emp.prenom||''}</div>
         <div><strong>Poste :</strong> ${emp.poste||'—'}</div>
         <div><strong>Salaire net mensuel :</strong> <strong style="font-size:18px;">${emp.salaire?Number(emp.salaire).toLocaleString('fr-MA'):'—'} MAD</strong></div>
         <div><strong>Type de contrat :</strong> ${emp.contrat||'CDI'}</div>
@@ -10761,7 +10259,7 @@ function imprimerDocRH(doc, emp) {
     corps = `
       <p>C'est avec plaisir que nous témoignons de notre entière satisfaction quant au travail accompli par :</p>
       <div class="emp-card">
-        <div><strong>M. / Mme :</strong> ${escapeHTML(emp.name)} ${emp.prenom||''}</div>
+        <div><strong>M. / Mme :</strong> ${emp.name} ${emp.prenom||''}</div>
         <div><strong>Poste occupé :</strong> ${emp.poste||'—'}</div>
         <div><strong>Période :</strong> du ${dateEmb} à ce jour</div>
       </div>
@@ -11023,18 +10521,14 @@ function applyNavPermissions() {
     document.querySelectorAll('.nav-item[data-nav-module]').forEach(el => {
       const mod = el.dataset.navModule;
       if (mod === 'owner-admin') return; // géré séparément
-      if (mod === 'utilisateurs') { el.style.display = 'none'; return; } // réservé super_admin
       const inPlan = hasModuleAccess(mod);
       const canRead = hasPermission(mod, 'read');
       el.style.display = (inPlan && canRead) ? '' : 'none';
     });
   }
-  // Owner-admin : UNIQUEMENT si is_owner=true dans Supabase
+  // Owner-admin : masqué — app single tenant
   const ownerNav = document.getElementById('nav-owner-admin');
-  if (ownerNav) {
-    ownerNav.style.display = isOwner() ? 'flex' : 'none';
-    ownerNav.style.visibility = isOwner() ? 'visible' : 'hidden';
-  }
+  if (ownerNav) ownerNav.style.display = 'none';
 }
 
 function hasPermission(module, action) {
@@ -11231,7 +10725,6 @@ async function hashPassword(pwd) {
 const _loginAttempts = { count: 0, lastFail: 0, locked: false };
 
 async function doLogin() {
-  // Anti brute-force: bloquer après 5 tentatives en 2 minutes
   const now = Date.now();
   if (_loginAttempts.locked && now - _loginAttempts.lastFail < 120000) {
     const wait = Math.ceil((120000 - (now - _loginAttempts.lastFail)) / 1000);
@@ -11243,65 +10736,45 @@ async function doLogin() {
     _loginAttempts.locked = false;
   }
 
-  const code  = (document.getElementById('l-code')?.value || '').trim().toLowerCase();
   const email = document.getElementById('l-email').value.trim().toLowerCase();
   const pwd   = document.getElementById('l-pwd').value;
   const btn   = document.getElementById('l-btn');
   const err   = document.getElementById('l-err');
   err.style.display = 'none';
 
-  if (!code) { showLoginErr("Code d'accès requis"); return; }
   if (!email || !pwd) { showLoginErr('Email et mot de passe requis'); return; }
 
   btn.disabled = true;
   btn.textContent = '⏳ Connexion...';
 
   try {
-    // ── 1. Vérifier le tenant (code d'accès) via clé anon ──
-    const { data: tenantData, error: tenantErr } = await sb
-      .from('gp_tenants')
-      .select('id, nom, code, actif, plan, expire_at, is_owner')
-      .eq('code', code)
-      .eq('actif', true)
-      .limit(1);
+    // Déconnecter session active
+    await sb.auth.signOut();
 
-    if (tenantErr) throw tenantErr;
-    const tenant = tenantData && tenantData.length > 0 ? tenantData[0] : null;
-    if (!tenant) throw new Error("Code d'accès invalide ou inactif");
-
-    // ── 2. Vérifier expiration licence ──
-    if (tenant.expire_at && new Date(tenant.expire_at) < new Date()) {
-      showLicenceExpired(tenant);
-      btn.disabled = false;
-      btn.textContent = 'Se connecter';
-      return;
-    }
-
-    // ── 3. Login Supabase Auth ──
-    const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
-      email: email,
-      password: pwd
-    });
-
+    // Login Supabase Auth
+    const { data: authData, error: authErr } = await sb.auth.signInWithPassword({ email, password: pwd });
     if (authErr) throw new Error('Email ou mot de passe incorrect');
 
-    // ── 4. Vérifier que le user appartient bien à ce tenant ──
+    // Charger user depuis gp_users
     const { data: userRow, error: userErr } = await sb
       .from('gp_users')
       .select('id,nom,prenom,role,local_id,telephone,actif,tenant_id,created_at,auth_id')
       .eq('auth_id', authData.user.id)
       .eq('actif', true)
-      .eq('tenant_id', tenant.id)
       .limit(1);
 
     if (userErr) throw userErr;
     const foundUser = userRow && userRow.length > 0 ? userRow[0] : null;
-    if (!foundUser) {
-      await sb.auth.signOut();
-      throw new Error('Accès refusé pour ce tenant');
-    }
+    if (!foundUser) { await sb.auth.signOut(); throw new Error('Compte non trouvé'); }
 
-    // Reset tentatives après succès
+    // Charger tenant
+    const { data: tenantRow } = await sb
+      .from('gp_tenants')
+      .select('id, nom, code, actif, plan, expire_at, is_owner')
+      .eq('id', foundUser.tenant_id)
+      .limit(1);
+    const tenant = tenantRow && tenantRow.length > 0 ? tenantRow[0] : null;
+
     _loginAttempts.count = 0;
     _loginAttempts.locked = false;
 
@@ -11310,7 +10783,6 @@ async function doLogin() {
     localStorage.setItem('gp_session', JSON.stringify({ user: GP_USER, tenant: GP_TENANT }));
     await startApp();
   } catch(e) {
-    // Incrémenter tentatives échouées
     _loginAttempts.count++;
     _loginAttempts.lastFail = Date.now();
     if (_loginAttempts.count >= 5) _loginAttempts.locked = true;
@@ -11367,7 +10839,6 @@ function forceLogout(reason) {
   _rtChannels = [];
   localStorage.removeItem('gp_session');
   GP_USER = null; GP_TENANT = null;
-  sb.auth.signOut();
   const appWrap = document.getElementById('app-wrapper');
   const loginScreen = document.getElementById('login-screen');
   if (appWrap) appWrap.style.display = 'none';
@@ -11408,74 +10879,6 @@ function showLicenceExpired(tenant) {
       💬 Renouveler sur WhatsApp
     </a>
   `;
-}
-
-async function confirmNewPassword() {
-  const pwd  = document.getElementById('new-pwd')?.value;
-  const pwd2 = document.getElementById('new-pwd2')?.value;
-  const msg  = document.getElementById('reset-msg');
-
-  if (!pwd || pwd.length < 8) { toast('Minimum 8 caractères', 'error'); return; }
-  if (pwd !== pwd2) { toast('Les mots de passe ne correspondent pas', 'error'); return; }
-
-  try {
-    const { error } = await sb.auth.updateUser({ password: pwd });
-    if (error) throw error;
-
-    if (msg) {
-      msg.style.display = 'block';
-      msg.style.background = 'rgba(0,212,170,0.1)';
-      msg.style.color = 'var(--accent)';
-      msg.textContent = '✅ Mot de passe mis à jour ! Redirection...';
-    }
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 2000);
-  } catch(e) {
-    toast('Erreur: ' + e.message, 'error');
-  }
-}
-
-function openForgotPassword() {
-  document.getElementById('forgot-email').value = '';
-  const msg = document.getElementById('forgot-msg');
-  msg.style.display = 'none';
-  openModal('modal-forgot-pwd');
-}
-
-async function sendResetEmail() {
-  const email = document.getElementById('forgot-email').value.trim();
-  const msg   = document.getElementById('forgot-msg');
-  const btn   = document.getElementById('btn-reset-pwd');
-
-  if (!email) { toast('Email requis', 'error'); return; }
-
-  btn.disabled = true;
-  btn.textContent = 'Envoi...';
-
-  try {
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/?reset=1'
-    });
-
-    if (error) throw error;
-
-    msg.style.display = 'block';
-    msg.style.background = 'rgba(0,212,170,0.1)';
-    msg.style.border = '1px solid rgba(0,212,170,0.3)';
-    msg.style.color = 'var(--accent)';
-    msg.textContent = '✅ Email envoyé ! Vérifiez votre boîte mail.';
-    btn.textContent = 'Envoyé ✅';
-
-  } catch(e) {
-    msg.style.display = 'block';
-    msg.style.background = 'rgba(224,49,49,0.1)';
-    msg.style.border = '1px solid rgba(224,49,49,0.3)';
-    msg.style.color = 'var(--red)';
-    msg.textContent = 'Erreur: ' + e.message;
-    btn.disabled = false;
-    btn.textContent = 'Envoyer le lien';
-  }
 }
 
 function showLoginErr(msg) {
@@ -11548,22 +10951,6 @@ async function startApp() {
   // Cacher loader, afficher app
   if (loader) loader.style.display = 'none';
   if (appWrap) appWrap.style.cssText = 'display:flex;width:100%;height:100%;';
-
-  // ── Vérifier expiration abonnement ──
-  if (!isOwner() && GP_TENANT?.expire_at) {
-    const expDate = new Date(GP_TENANT.expire_at);
-    if (expDate < new Date()) {
-      const planNames = { starter:'Starter 🥉', business:'Business 🥈', premium:'Premium 🥇', trial:'Essai gratuit' };
-      const expEl = document.getElementById('expired-screen');
-      if (expEl) {
-        document.getElementById('expired-plan-name').textContent = planNames[GP_TENANT.plan] || GP_TENANT.plan;
-        document.getElementById('expired-date').textContent = expDate.toLocaleDateString('fr-FR');
-        const waLink = document.getElementById('expired-wa-link');
-        if (waLink) waLink.href = `https://wa.me/212664783510?text=Bonjour%2C%20je%20veux%20renouveler%20mon%20abonnement%20GestionPro%20(code%3A%20${GP_TENANT.code})`;
-        expEl.style.display = 'flex';
-      }
-    }
-  }
 
   const firstPage = applyRBACUI();
   populateClientSelect();
@@ -11685,7 +11072,7 @@ function applyRBACUI() {
     }
   }
 
-  // Afficher/masquer nav Super Admin — pour tous les super_admin
+  // Afficher/masquer nav Super Admin
   const navSA = document.getElementById('nav-superadmin');
   if (navSA) navSA.style.display = isSuperAdmin() ? 'flex' : 'none';
 
@@ -11965,7 +11352,7 @@ function selectRestockProduct(id) {
   if (!p) return;
   document.getElementById('reappro-prod-id').value = id;
   const localNom = GP_LOCAUX_ALL.find(l => l.id === p.local_id)?.nom || p.zone || '';
-  document.getElementById('reappro-prod-name').textContent = `📦 ${escapeHTML(p.name)}${p.code ? ' · ' + p.code : ''}${localNom ? ' · ' + localNom : ''}`;
+  document.getElementById('reappro-prod-name').textContent = `📦 ${p.name}${p.code ? ' · ' + p.code : ''}${localNom ? ' · ' + localNom : ''}`;
   document.getElementById('reappro-selected').style.display = '';
   document.getElementById('reappro-btn-confirm').style.display = '';
   document.getElementById('reappro-list').innerHTML = '';
@@ -12045,7 +11432,7 @@ async function confirmRestock() {
     save();
     closeModal('modal-reappro');
     renderStockTable(); updateAlertCount();
-    toast(`✅ +${totalAdded} pièces (tailles) ajoutées à "${escapeHTML(p.name)}" → stock total: ${p.stock}`, 'success');
+    toast(`✅ +${totalAdded} pièces (tailles) ajoutées à "${p.name}" → stock total: ${p.stock}`, 'success');
   } else {
     const qty = parseFloat(document.getElementById('reappro-qty').value);
     if (!qty || qty <= 0) { toast('Quantité invalide', 'error'); return; }
@@ -12054,7 +11441,7 @@ async function confirmRestock() {
     save();
     closeModal('modal-reappro');
     renderStockTable(); updateAlertCount();
-    toast(`✅ +${qty} ${p.unit||'unités'} ajouté à "${escapeHTML(p.name)}" → stock: ${p.stock}`, 'success');
+    toast(`✅ +${qty} ${p.unit||'unités'} ajouté à "${p.name}" → stock: ${p.stock}`, 'success');
   }
 }
 
@@ -12177,7 +11564,7 @@ function genererContrat() {
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Contrat de Travail — ${escapeHTML(emp.name)}</title>
+<title>Contrat de Travail — ${emp.name}</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: 'Times New Roman', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #1a1a1a; font-size: 13px; line-height: 1.7; }
@@ -12207,7 +11594,7 @@ function genererContrat() {
     <div>${store}</div>
     <div>${settings.storeAddress||''}</div>
     <div>${settings.storePhone||''}</div>
-    ${settings.storeIce ? `<div>ICE : ${escapeHTML(settings.storeIce)}</div>` : ''}
+    ${settings.storeIce ? `<div>ICE : ${settings.storeIce}</div>` : ''}
     <div style="margin-top:6px;"><strong>Fait à :</strong> ${lieu||settings.storeAddress||'—'}</div>
     <div><strong>Le :</strong> ${today}</div>
   </div>
@@ -12232,7 +11619,7 @@ function genererContrat() {
     </div>
     <div class="partie-box">
       <strong>Le Salarié</strong>
-      <div><strong>Nom & Prénom :</strong> ${escapeHTML(emp.name)} ${emp.prenom||''}</div>
+      <div><strong>Nom & Prénom :</strong> ${emp.name} ${emp.prenom||''}</div>
       <div><strong>CIN :</strong> ${emp.cin||'—'}</div>
       <div><strong>Tél :</strong> ${emp.tel||'—'}</div>
       <div><strong>Email :</strong> ${emp.email||'—'}</div>
@@ -12250,7 +11637,7 @@ function genererContrat() {
 
 <div class="section">
   <h3>ARTICLE 2 — POSTE ET LIEU DE TRAVAIL</h3>
-  <p>Le Salarié est engagé en qualité de <strong>${emp.poste||'—'}</strong>${emp.dept ? `, département <strong>${escapeHTML(emp.dept)}</strong>` : ''}, à exercer ses fonctions au <strong>${lieu||'siège social'}</strong> de l'Employeur.</p>
+  <p>Le Salarié est engagé en qualité de <strong>${emp.poste||'—'}</strong>${emp.dept ? `, département <strong>${emp.dept}</strong>` : ''}, à exercer ses fonctions au <strong>${lieu||'siège social'}</strong> de l'Employeur.</p>
   <p>L'Employeur se réserve le droit de modifier le lieu de travail en cas de nécessité, dans le respect des dispositions légales.</p>
 </div>
 
@@ -12311,7 +11698,7 @@ ${avantagesHtml}
   </div>
   <div class="sig-box">
     <div style="font-weight:700;">LE SALARIÉ</div>
-    <div style="color:#555;font-size:11px;">${escapeHTML(emp.name)} ${emp.prenom||''}</div>
+    <div style="color:#555;font-size:11px;">${emp.name} ${emp.prenom||''}</div>
     <div style="font-size:10px;color:#888;margin-top:4px;">(Précédé de la mention manuscrite « Lu et approuvé »)</div>
     <div class="sig-line">Signature</div>
   </div>
@@ -12507,7 +11894,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) products[idx] = p; else products.unshift(p);
     }
     renderStockTable(false); updateAlertCount();
-    if (document.getElementById('page-stock')?.classList.contains('active')) _showSyncToast('Stock mis à jour');
+    _showSyncToast('Stock mis à jour');
 
   } else if (tbl === 'gp_sales') {
     if (eventType === 'DELETE') {
@@ -12522,7 +11909,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     }
     if (typeof renderVentes === 'function') renderVentes();
     renderDashboard();
-    if (document.getElementById('page-ventes')?.classList.contains('active')) _showSyncToast('Ventes mises à jour');
+    _showSyncToast('Ventes mises à jour');
 
   } else if (tbl === 'gp_clients') {
     if (eventType === 'DELETE') {
@@ -12537,7 +11924,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     }
     if (typeof renderClients === 'function') renderClients();
     populateClientSelect();
-    if (document.getElementById('page-clients')?.classList.contains('active')) _showSyncToast('Clients mis à jour');
+    _showSyncToast('Clients mis à jour');
 
   } else if (tbl === 'gp_employes') {
     if (eventType === 'DELETE') {
@@ -12551,7 +11938,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) employes[idx] = e; else employes.push(e);
     }
     renderEmployes(); updateEmployeSelects();
-    if (document.getElementById('page-employes')?.classList.contains('active')) _showSyncToast('Employés mis à jour');
+    _showSyncToast('Employés mis à jour');
 
   } else if (tbl === 'gp_caisse_ops') {
     const normOp = r => ({ ...r, label: r.label || r.description || '', payment: r.payment || null });
@@ -12564,7 +11951,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) caisseOps[idx] = normOp(newRow); else caisseOps.unshift(normOp(newRow));
     }
     if (typeof renderFonds === 'function') renderFonds();
-    if (document.getElementById('page-caisse')?.classList.contains('active')) _showSyncToast('Caisse mise à jour');
+    _showSyncToast('Caisse mise à jour');
 
   } else if (tbl === 'gp_livraisons') {
     if (eventType === 'DELETE') {
@@ -12578,7 +11965,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) livraisons[idx] = l; else livraisons.unshift(l);
     }
     if (typeof renderLivraisons === 'function') renderLivraisons();
-    if (document.getElementById('page-livraisons')?.classList.contains('active')) _showSyncToast('Livraisons mises à jour');
+    _showSyncToast('Livraisons mises à jour');
 
   } else if (tbl === 'gp_conges') {
     if (eventType === 'DELETE') {
@@ -12596,7 +11983,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     const pending = conges.filter(c=>c.statut==='pending').length;
     const badge = document.getElementById('badge-conges');
     if (badge) { badge.textContent=pending; badge.style.display=pending>0?'':'none'; }
-    if (document.getElementById('page-conges')?.classList.contains('active')) _showSyncToast('Congés mis à jour');
+    _showSyncToast('Congés mis à jour');
 
   } else if (tbl === 'gp_conteneurs') {
     if (eventType === 'DELETE') {
@@ -12616,7 +12003,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) conteneurs[idx] = c; else conteneurs.unshift(c);
     }
     if (typeof renderConteneurs === 'function') renderConteneurs();
-    if (document.getElementById('page-conteneurs')?.classList.contains('active')) _showSyncToast('Conteneurs mis à jour');
+    _showSyncToast('Conteneurs mis à jour');
 
   } else if (tbl === 'gp_ordres') {
     if (eventType === 'DELETE') {
@@ -12630,7 +12017,7 @@ async function _handleRealtimeEvent(tbl, payload) {
       if (idx >= 0) ordres[idx] = o; else ordres.unshift(o);
     }
     if (typeof renderConteneurs === 'function') renderConteneurs();
-    if (document.getElementById('page-conteneurs')?.classList.contains('active')) _showSyncToast('Ordres mis à jour');
+    _showSyncToast('Ordres mis à jour');
 
   } else if (tbl === 'gp_docs_rh') {
     if (eventType === 'DELETE') {
@@ -12645,7 +12032,7 @@ async function _handleRealtimeEvent(tbl, payload) {
     }
     if (typeof renderDocsRH === 'function') renderDocsRH();
     if (typeof renderDocsRH === 'function') renderDocsRH();
-    if (document.getElementById('page-docs_rh')?.classList.contains('active')) _showSyncToast('Documents RH mis à jour');
+    _showSyncToast('Documents RH mis à jour');
 
   } else if (tbl === 'gp_locaux') {
     // Reload locaux depuis Supabase pour avoir la liste à jour
@@ -12656,7 +12043,7 @@ async function _handleRealtimeEvent(tbl, payload) {
         locaux = GP_LOCAUX_ALL;
         if (typeof renderLocaux === 'function') renderLocaux();
         updateSALocalSwitcher();
-        if (document.getElementById('page-locaux')?.classList.contains('active')) _showSyncToast('Locaux mis à jour');
+        _showSyncToast('Locaux mis à jour');
       }
     } catch(e) { console.debug('[Realtime] gp_locaux reload:', e); }
   }
@@ -12830,7 +12217,7 @@ async function renderSAVue() {
           const st = p.stock === 0 ? '🔴 Rupture' : p.stock < p.min_stock ? '🟡 Bas' : '🟢 OK';
           return `<tr>
             <td><span style="color:${p._loc.couleur||'var(--accent)'};">● ${p._loc.nom}</span></td>
-            <td><strong>${escapeHTML(p.name)}</strong></td><td>${p.category||'—'}</td>
+            <td><strong>${p.name}</strong></td><td>${p.category||'—'}</td>
             <td style="font-family:'JetBrains Mono',monospace;">${p.stock}</td>
             <td style="font-family:'JetBrains Mono',monospace;">${(p.price||0).toFixed(2)} MAD</td>
             <td>${st}</td></tr>`;
@@ -13383,35 +12770,6 @@ function deleteSARole(key) {
 // ║              AUTO-LOGIN & SESSION                            ║
 // ╚══════════════════════════════════════════════════════════════╝
 (async () => {
-  // ── Gestion reset mot de passe ──
-  const hash = window.location.hash;
-  if (hash.includes('type=recovery') || new URLSearchParams(window.location.search).get('reset')) {
-    // Supabase redirige avec #access_token=...&type=recovery
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      // Afficher formulaire nouveau mot de passe
-      const loginBox = document.querySelector('.lc');
-      if (loginBox) {
-        loginBox.innerHTML = `
-          <div class="lc-logo">
-            <div class="lc-logo-icon">🔑</div>
-            <h1>Nouveau mot de passe</h1>
-          </div>
-          <div class="lf">
-            <label>Nouveau mot de passe</label>
-            <input type="password" id="new-pwd" placeholder="Min. 8 caractères" class="input">
-          </div>
-          <div class="lf">
-            <label>Confirmer</label>
-            <input type="password" id="new-pwd2" placeholder="Répéter le mot de passe" class="input">
-          </div>
-          <div id="reset-msg" style="display:none;margin-bottom:12px;font-size:13px;padding:10px;border-radius:8px;"></div>
-          <button onclick="confirmNewPassword()" class="lb">✅ Enregistrer le mot de passe</button>`;
-      }
-      return;
-    }
-  }
-
   const saved = localStorage.getItem('gp_session');
   if (saved) {
     try {
@@ -13455,7 +12813,7 @@ function deleteSARole(key) {
   <div class="modal" style="max-width:420px;">
     <div class="modal-title">🔑 Réinitialiser le mot de passe</div>
     <div style="display:flex;flex-direction:column;gap:14px;margin-top:16px;">
-      <div style="font-size:13px;color:var(--text2);line-height:1.5;">Entrez votre email — vous recevrez un lien pour réinitialiser votre mot de passe.</div>
+      <div style="font-size:13px;color:var(--text2);">Entrez votre email — vous recevrez un lien pour réinitialiser votre mot de passe.</div>
       <div class="form-group">
         <label>Email</label>
         <input type="email" id="forgot-email" class="input" placeholder="votre@email.com">
@@ -13469,35 +12827,71 @@ function deleteSARole(key) {
   </div>
 </div>
 
-<!-- Modal demande virement (global) -->
-<div class="modal-overlay" id="modal-abo-request">
-  <div class="modal" style="max-width:480px;">
-    <div class="modal-title">📤 Confirmer mon Virement</div>
-    <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px;">
-      <div style="font-size:13px;color:var(--text2);">Remplissez ce formulaire après avoir effectué le virement. Nous vérifierons et activerons votre abonnement sous 24h.</div>
-      <div class="form-group">
-        <label>Plan souhaité</label>
-        <div id="abo-req-plan-label" style="font-weight:700;font-size:14px;padding:10px;background:var(--surface2);border-radius:8px;color:var(--accent);">—</div>
-      </div>
-      <div class="form-group">
-        <label>Montant viré (MAD)</label>
-        <input id="abo-req-montant" type="number" class="input" placeholder="ex: 399">
-      </div>
-      <div class="form-group">
-        <label>Date du virement</label>
-        <input id="abo-req-date" type="date" class="input">
-      </div>
-      <div class="form-group">
-        <label>Notes (optionnel)</label>
-        <textarea id="abo-req-notes" class="input" rows="2" placeholder="Numéro de virement, banque..."></textarea>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="closeModal('modal-abo-request')" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);font-weight:700;cursor:pointer;">Annuler</button>
-        <button onclick="submitAboRequest()" style="flex:2;padding:12px;border-radius:10px;background:var(--accent);color:#000;font-weight:700;border:none;cursor:pointer;font-size:14px;">📤 Envoyer la demande</button>
-      </div>
-    </div>
-  </div>
-</div>
+<script>
+function openForgotPassword() {
+  document.getElementById('forgot-email').value = '';
+  document.getElementById('forgot-msg').style.display = 'none';
+  openModal('modal-forgot-pwd');
+}
+
+async function sendResetEmail() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const msg   = document.getElementById('forgot-msg');
+  const btn   = document.getElementById('btn-reset-pwd');
+  if (!email) { toast('Email requis', 'error'); return; }
+  btn.disabled = true; btn.textContent = 'Envoi...';
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/?reset=1'
+    });
+    if (error) throw error;
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(0,212,170,0.1)';
+    msg.style.border = '1px solid rgba(0,212,170,0.3)';
+    msg.style.color = 'var(--accent)';
+    msg.textContent = '✅ Email envoyé ! Vérifiez votre boîte mail.';
+    btn.textContent = 'Envoyé ✅';
+  } catch(e) {
+    msg.style.display = 'block';
+    msg.style.background = 'rgba(224,49,49,0.1)';
+    msg.style.border = '1px solid rgba(224,49,49,0.3)';
+    msg.style.color = 'var(--red)';
+    msg.textContent = 'Erreur: ' + e.message;
+    btn.disabled = false; btn.textContent = 'Envoyer le lien';
+  }
+}
+
+async function confirmNewPassword() {
+  const pwd  = document.getElementById('new-pwd')?.value;
+  const pwd2 = document.getElementById('new-pwd2')?.value;
+  if (!pwd || pwd.length < 8) { toast('Minimum 8 caractères', 'error'); return; }
+  if (pwd !== pwd2) { toast('Les mots de passe ne correspondent pas', 'error'); return; }
+  try {
+    const { error } = await sb.auth.updateUser({ password: pwd });
+    if (error) throw error;
+    toast('✅ Mot de passe mis à jour ! Redirection...');
+    setTimeout(() => window.location.href = '/', 2000);
+  } catch(e) { toast('Erreur: ' + e.message, 'error'); }
+}
+
+// Gérer reset password via lien email
+(async () => {
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery')) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const loginBox = document.querySelector('.lc');
+      if (loginBox) {
+        loginBox.innerHTML = `
+          <div class="lc-logo"><div class="lc-logo-icon">🔑</div><h1>Nouveau mot de passe</h1></div>
+          <div class="lf"><label>Nouveau mot de passe</label><input type="password" id="new-pwd" class="lf input" placeholder="Min. 8 caractères"></div>
+          <div class="lf"><label>Confirmer</label><input type="password" id="new-pwd2" class="lf input" placeholder="Répéter le mot de passe"></div>
+          <button onclick="confirmNewPassword()" class="lb">✅ Enregistrer</button>`;
+      }
+    }
+  }
+})();
+</script>
 
 </body>
 </html>
