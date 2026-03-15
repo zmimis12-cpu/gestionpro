@@ -770,7 +770,12 @@ async function createAccount() {
       body: JSON.stringify({ email, password: pwd, tenantId: tenant.id, nom })
     });
     const efData = await efRes.json();
-    if (!efRes.ok) throw new Error(efData.error || 'Erreur création compte');
+    console.log('[Signup] Edge Function response:', efData, 'status:', efRes.status);
+    if (!efRes.ok || !efData.success) {
+      // Supprimer le tenant créé pour éviter les orphelins
+      await sb.from('gp_tenants').delete().eq('id', tenant.id);
+      throw new Error(efData.error || 'Erreur création compte Auth');
+    }
 
     // 6. Subscription
     await sb.from('gp_subscriptions').insert({
