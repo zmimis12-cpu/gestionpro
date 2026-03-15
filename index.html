@@ -12107,7 +12107,7 @@ function resetAllRolePerms() {
 async function saveSAUser() {
   const id      = document.getElementById('sau-id').value;
   const nom     = document.getElementById('sau-nom').value.trim();
-  const email   = document.getElementById('sau-email').value.trim().toLowerCase(); // username utilisé comme identifiant
+  const email   = document.getElementById('sau-email').value.trim().toLowerCase();
   const pwd     = document.getElementById('sau-pwd').value;
   const role    = document.getElementById('sau-role').value;
   const localId = document.getElementById('sau-local').value;
@@ -12125,40 +12125,63 @@ async function saveSAUser() {
   const existing = GP_USERS_ALL.find(u => u.email === email && u.id !== id);
   if (existing) { toast('Email déjà utilisé', 'error'); return; }
 
-  // Si modification sans nouveau mot de passe, récupérer l'ancien
-  let finalPwd = pwd;
-  if (!finalPwd && id) {
-    const existingUser = GP_USERS_ALL.find(u => u.id === id);
-    finalPwd = existingUser?.password || '';
-    if (!finalPwd) {
-      // Récupérer depuis Supabase
-      const { data: dbUser } = await sb.from('gp_users').select('password').eq('id', id).maybeSingle();
-      finalPwd = dbUser?.password || await hashPassword('changeme');
+  if (!id) {
+    // ── Nouvel utilisateur → Edge Function (crée Auth + gp_users) ──
+    try {
+      const efRes = await fetch(`${SUPABASE_URL}/functions/v1/create-tenant-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON}` },
+        body: JSON.stringify({
+          email, password: pwd,
+          tenantId: GP_TENANT.id,
+          nom, role, local_id: localId || null
+        })
+      });
+      const efData = await efRes.json();
+      if (!efRes.ok || !efData.success) throw new Error(efData.error || 'Erreur création compte');
+
+      // Mettre à jour role et local dans gp_users
+      await sb.from('gp_users')
+        .update({ role, local_id: localId || null, actif })
+        .eq('auth_id', efData.auth_id);
+
+      await loadSAData();
+      closeModal('modal-sa-user');
+      toast(`✅ Utilisateur "${nom}" créé`);
+      renderSAUsers();
+      renderSADash();
+    } catch(e) {
+      toast('❌ Erreur: ' + e.message, 'error');
     }
+    return;
   }
 
+  // ── Modification utilisateur existant ──
   const obj = {
-    id:        id || 'U' + Date.now(),
     nom, email, role,
-    password:  pwd ? await hashPassword(pwd) : finalPwd,
     prenom:    document.getElementById('sau-prenom').value.trim(),
     telephone: document.getElementById('sau-tel').value.trim(),
     local_id:  localId || null,
     actif
   };
 
-  const { error } = await sb.from('gp_users').upsert(obj, { onConflict: 'id' });
-  if (error) { toast('❌ Erreur: ' + error.message, 'error'); return; }
-
-  if (id) {
-    const idx = GP_USERS_ALL.findIndex(u => u.id === id);
-    if (idx >= 0) GP_USERS_ALL[idx] = { ...GP_USERS_ALL[idx], ...obj };
-  } else {
-    GP_USERS_ALL.push(obj);
+  // Mettre à jour mot de passe Auth si nouveau pwd
+  if (pwd) {
+    const user = GP_USERS_ALL.find(u => u.id === id);
+    if (user?.auth_id) {
+      // Via Edge Function update password
+      obj.password = await hashPassword(pwd);
+    }
   }
 
+  const { error } = await sb.from('gp_users').update(obj).eq('id', id);
+  if (error) { toast('❌ Erreur: ' + error.message, 'error'); return; }
+
+  const idx = GP_USERS_ALL.findIndex(u => u.id === id);
+  if (idx >= 0) GP_USERS_ALL[idx] = { ...GP_USERS_ALL[idx], ...obj };
+
   closeModal('modal-sa-user');
-  toast(`✅ Utilisateur "${nom}" ${id ? 'mis à jour' : 'créé'}`);
+  toast(`✅ Utilisateur "${nom}" mis à jour`);
   renderSAUsers();
   renderSADash();
 }
