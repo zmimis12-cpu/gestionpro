@@ -4771,12 +4771,12 @@ function executeTransfert() {
     destProd.stock += qty;
     // Sauvegarder directement dans Supabase les 2 produits modifiés
     sbSync('gp_products', [
-      { id: p.id, local_id: p.local_id || fromLid, name: p.name, category: p.category,
+      { id: p.id, tenant_id: GP_TENANT?.id, local_id: p.local_id || fromLid, name: p.name, category: p.category,
         code: p.code||null, type: p.type||'unite', price: p.price, cost: p.cost||0,
         stock: p.stock, min_stock: p.minStock||5, unit: p.unit||'Pièce',
         zone: p.zone||null, sizes: p.sizes||{}, photo_url: p.photo||null,
         updated_at: new Date().toISOString() },
-      { id: destProd.id, local_id: destProd.local_id || toLid, name: destProd.name, category: destProd.category,
+      { id: destProd.id, tenant_id: GP_TENANT?.id, local_id: destProd.local_id || toLid, name: destProd.name, category: destProd.category,
         code: destProd.code||null, type: destProd.type||'unite', price: destProd.price, cost: destProd.cost||0,
         stock: destProd.stock, min_stock: destProd.minStock||5, unit: destProd.unit||'Pièce',
         zone: destProd.zone||null, sizes: destProd.sizes||{}, photo_url: destProd.photo||null,
@@ -4788,6 +4788,7 @@ function executeTransfert() {
       ...JSON.parse(JSON.stringify(p)),
       id: uid(),
       local_id: toLid,
+      tenant_id: GP_TENANT?.id || p.tenant_id,
       stock: qty,
       zone: toNom,
       createdAt: new Date().toISOString()
@@ -4795,12 +4796,12 @@ function executeTransfert() {
     products.push(newP);
     // Sauvegarder les 2 dans Supabase
     sbSync('gp_products', [
-      { id: p.id, local_id: p.local_id || fromLid, name: p.name, category: p.category,
+      { id: p.id, tenant_id: GP_TENANT?.id, local_id: p.local_id || fromLid, name: p.name, category: p.category,
         code: p.code||null, type: p.type||'unite', price: p.price, cost: p.cost||0,
         stock: p.stock, min_stock: p.minStock||5, unit: p.unit||'Pièce',
         zone: p.zone||null, sizes: p.sizes||{}, photo_url: p.photo||null,
         updated_at: new Date().toISOString() },
-      { id: newP.id, local_id: toLid, name: newP.name, category: newP.category,
+      { id: newP.id, tenant_id: GP_TENANT?.id, local_id: toLid, name: newP.name, category: newP.category,
         code: newP.code||null, type: newP.type||'unite', price: newP.price, cost: newP.cost||0,
         stock: newP.stock, min_stock: newP.minStock||5, unit: newP.unit||'Pièce',
         zone: toNom, sizes: newP.sizes||{}, photo_url: newP.photo||null,
