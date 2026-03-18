@@ -4751,12 +4751,20 @@ function executeTransfert() {
   // Déduire du source
   p.stock -= qty;
 
-  // Chercher produit existant dans le local destination (même nom + même code)
-  const destProd = products.find(x =>
-    x.id !== p.id &&
-    x.local_id === toLid &&
-    (x.code && p.code ? x.code === p.code : x.name === p.name)
-  );
+  // Chercher produit existant dans le local destination
+  // Priorité: même code → même nom+catégorie → même nom seul
+  const destProd = products.find(x => {
+    if (x.id === p.id) return false;
+    if (x.local_id !== toLid) return false;
+    // Même code (si les deux ont un code)
+    if (x.code && x.code.trim() && p.code && p.code.trim()) {
+      return x.code.trim().toLowerCase() === p.code.trim().toLowerCase();
+    }
+    // Même nom + même catégorie
+    const sameName = x.name.trim().toLowerCase() === p.name.trim().toLowerCase();
+    const sameCat  = (x.category||'').toLowerCase() === (p.category||'').toLowerCase();
+    return sameName && sameCat;
+  });
 
   if (destProd) {
     // Produit existe déjà dans la destination → juste augmenter le stock
