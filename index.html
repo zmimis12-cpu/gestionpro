@@ -3837,6 +3837,7 @@ tbody td {
 
       <!-- ═══════════════════════════════ CAISSE ═══════════════════════════════ -->
       <div class="page" id="page-caisse">
+
         <div class="caisse-layout">
           <!-- Products -->
           <div class="products-panel">
@@ -6950,9 +6951,13 @@ function onSALocalSwitch() {
   loadUserData().then(() => {
     renderDashboard();
     renderStockTable();
+    renderProductGrid();        // ← mise à jour caisse immédiate
+    if (typeof renderCategoryFilters === 'function') renderCategoryFilters(); // ← recalculer les catégories
     if (typeof renderVentes === 'function') renderVentes();
     if (typeof renderClients === 'function') renderClients();
     if (typeof renderEmployes === 'function') renderEmployes();
+    if (typeof renderDepenses === 'function') renderDepenses();
+    if (typeof renderLocaux === 'function') renderLocaux();
     populateClientSelect();
     updateAlertCount();
     setupRealtime(); // relancer sur le nouveau local_id
@@ -6960,6 +6965,12 @@ function onSALocalSwitch() {
       ? (GP_LOCAUX_ALL.find(l => l.id === SA_ACTIVE_LOCAL)?.nom || SA_ACTIVE_LOCAL)
       : 'Accès global';
     toast(`🏪 Local actif : ${localName}`, 'success');
+
+    // Si on revient en accès global pendant qu'on est sur la caisse → forcer re-choix
+    const caissePage = document.getElementById('page-caisse');
+    if (!SA_ACTIVE_LOCAL && caissePage?.classList.contains('active') && isSuperAdmin()) {
+      setTimeout(() => openCaisseLocalModal(), 400);
+    }
   });
 }
 
@@ -7163,6 +7174,11 @@ function navigate(page) {
   if (page === 'owner-admin') {
     if (!isOwner()) { navigate('dashboard'); return; } // BLOQUER accès non-owner
     loadOAData();
+  }
+
+  // ── Caisse : forcer choix du local si accès global ──
+  if (page === 'caisse' && isSuperAdmin() && !SA_ACTIVE_LOCAL) {
+    openCaisseLocalModal();
   }
 
   const titles = { depenses:'💸 Gestion des Dépenses', dashboard:'Tableau de bord', caisse:'Caisse & Ventes', conteneurs:'Gestion Conteneurs', commandes:'Ordres & Ventes', docscont:'Documents Conteneurs', fonds:'Fonds de Caisse', stock:'Gestion du Stock', locaux:'Gestion des Locaux / Zones', clients:'Gestion Clients', alerts:'Alertes & Notifications', settings:'Paramètres', superadmin:'👑 Super Admin — Panneau Central', 'owner-admin':'🏢 Mes Clients GestionPro', employes:'👨‍💼 Gestion des Employés', conges:'🏖️ Gestion des Congés', livraisons:'🚚 Bons de Livraison', 'docs-rh':'📋 Documents RH', 'docs-admin':'🏢 Documents Administratifs' };
@@ -8129,6 +8145,66 @@ async function loadPhotoFromUrl(product) {
 // ─── CAISSE ───
 const debouncedRenderGrid = debounce(() => { _pages['caisse'] = 1; renderProductGrid(); });
 
+// ── Sélection obligatoire du local pour la caisse ────────────────
+function openCaisseLocalModal() {
+  const container = document.getElementById('caisse-local-choices');
+  if (!container) return;
+
+  const locaux_actifs = GP_LOCAUX_ALL.filter(l => l.actif !== false);
+
+  if (!locaux_actifs.length) {
+    toast('Aucun local configuré. Créez un local d\'abord.', 'warn');
+    navigate('locaux');
+    return;
+  }
+
+  container.innerHTML = locaux_actifs.map(l => {
+    const prodsCount = products.filter(p => p.local_id === l.id).length;
+    const stockTotal = products.filter(p => p.local_id === l.id).reduce((s,p) => s + (p.stock||0), 0);
+    return `<button onclick="selectCaisseLocal('${l.id}')" style="
+      width:100%;padding:12px 18px;border-radius:8px;
+      border:1.5px solid #e5e7eb;background:#fff;
+      cursor:pointer;text-align:left;transition:all 0.12s;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      font-family:var(--font);
+    "
+    onmouseover="this.style.borderColor='#2563eb';this.style.background='#eff6ff'"
+    onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'">
+      <div>
+        <div style="font-size:14px;font-weight:650;color:#111827;">🏪 ${escapeHTML(l.nom)}</div>
+        ${l.desc ? `<div style="font-size:11.5px;color:#6b7280;margin-top:2px;">${escapeHTML(l.desc)}</div>` : ''}
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:13px;font-weight:700;color:#2563eb;">${stockTotal.toLocaleString('fr-FR')}</div>
+        <div style="font-size:10.5px;color:#9ca3af;">${prodsCount} réf.</div>
+      </div>
+    </button>`;
+  }).join('');
+
+  document.getElementById('modal-caisse-local').classList.add('open');
+}
+
+function selectCaisseLocal(localId) {
+  // Fermer le modal
+  document.getElementById('modal-caisse-local').classList.remove('open');
+
+  // Appliquer le local sélectionné
+  SA_ACTIVE_LOCAL = localId;
+  const sel = document.getElementById('sa-active-local');
+  if (sel) sel.value = localId;
+
+  // Mettre à jour la topbar
+  const localName = GP_LOCAUX_ALL.find(l => l.id === localId)?.nom || localId;
+  const info = document.getElementById('sb-local-info');
+  if (info) { info.textContent = '📍 ' + localName; info.style.display = ''; }
+
+  // Recharger la grille produits avec le bon local
+  renderProductGrid();
+  if (typeof renderCategoryFilters === 'function') renderCategoryFilters();
+  updateAlertCount();
+  toast(`🏪 Local de vente : ${localName}`, 'success');
+}
+
 function renderProductGrid(resetPage) {
   if (resetPage !== false) _pages['caisse'] = 1;
   const q = (document.getElementById('product-search')?.value || '').toLowerCase();
@@ -8174,12 +8250,13 @@ function renderProductGrid(resetPage) {
       : p.type === 'couleurs'
       ? Object.values(p.colors || {}).every(v => v <= 0)
       : p.type === 'kg'
-      ? p.stock <= 0
-      : p.stock === 0;
+      ? (p._totalStock||p.stock) <= 0
+      : (p._totalStock||p.stock) === 0;
     return `<div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" onclick="addToCart('${p.id}')">
       ${photo}
-      <div class="product-stock-badge">${p.type==='tailles' ? '👕 Tailles' : p.type==='couleurs' ? '🎨 Couleurs' : p.type==='kg' ? `⚖️ ${p.stock}kg` : p.stock}</div>
+      <div class="product-stock-badge" title="${p._variants&&p._variants.length>1 ? p._variants.map(v=>{const l=GP_LOCAUX_ALL.find(l=>l.id===v.local_id)?.nom||v.zone||'?';return l+': '+v.stock}).join(' | ') : ''}">${p.type==='tailles' ? '👕' : p.type==='couleurs' ? '🎨' : p.type==='kg' ? `⚖️ ${p._totalStock||p.stock}kg` : (p._totalStock||p.stock)}</div>
       <div class="product-name">${escapeHTML(p.name)}</div>
+      ${!SA_ACTIVE_LOCAL && p._variants && p._variants.length > 1 ? `<div style="font-size:9.5px;color:var(--text3);margin-top:1px;text-align:center;">📍 ${p._variants.length} locaux</div>` : ''}
       <div class="product-price">${p.price.toFixed(2)} MAD${p.type==='kg' ? '<span style="font-size:10px;color:var(--text2);"> /kg</span>' : ''}</div>
     </div>`;
   }).join('');
@@ -8708,6 +8785,12 @@ function populateClientSelect() {
 function checkout(docType) {
   if (!isSuperAdmin() && !hasPermission('caisse', 'create')) {
     toast('⛔ Permission refusée', 'error'); return;
+  }
+  // Bloquer si accès global sans local sélectionné
+  if (isSuperAdmin() && !SA_ACTIVE_LOCAL) {
+    openCaisseLocalModal();
+    toast('⚠️ Choisissez un local avant de valider la vente', 'warn');
+    return;
   }
   if (!cart.length) { toast(t('toast_cart_empty'), 'warn'); return; }
   const fin = calcCartFinancials();
@@ -11658,7 +11741,21 @@ function printOrdre() {
   const content = document.getElementById('ordre-pdf-content').innerHTML;
   const htmlStr = `<html><head><title>Ordre Importation</title>
     <style>@page{size:A4;margin:0}body{margin:0;font-family:Arial,sans-serif}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style>
-  </head><body>${content}</body></html>`;
+  </head><body>${content}
+<!-- ═══ MODAL CHOIX LOCAL CAISSE (obligatoire) ═══ -->
+<div class="modal-overlay" id="modal-caisse-local" style="z-index:2000;">
+  <div class="modal" style="max-width:420px;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px;">🏪</div>
+    <div style="font-size:17px;font-weight:700;color:#111827;letter-spacing:-0.3px;margin-bottom:8px;">Choisir le local de vente</div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:20px;line-height:1.6;">
+      Sélectionnez le local depuis lequel vous effectuez cette vente.<br>
+      <strong>Le stock sera déduit uniquement de ce local.</strong>
+    </div>
+    <div id="caisse-local-choices" style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;"></div>
+  </div>
+</div>
+
+</body></html>`;
   const blob = new Blob([htmlStr], {type:'text/html;charset=utf-8'});
   const url  = URL.createObjectURL(blob);
   const win  = window.open(url, '_blank');
