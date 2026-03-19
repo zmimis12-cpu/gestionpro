@@ -1051,19 +1051,18 @@ function escapeHTML(str) {
 
   /* Card */
   .lc {
-    background: rgba(255,255,255,0.96);
-    border: 1px solid rgba(16,24,40,0.08);
-    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid rgba(16,24,40,0.09);
+    border-radius: 18px;
     padding: 36px 36px 28px;
     width: 100%;
     max-width: 400px;
     box-shadow:
-      0 0 0 1px rgba(16,24,40,0.03),
-      0 4px 24px rgba(16,24,40,0.08),
-      0 1px 4px rgba(16,24,40,0.04);
+      0 0 0 1px rgba(16,24,40,0.02),
+      0 2px 8px rgba(16,24,40,0.04),
+      0 8px 32px rgba(16,24,40,0.07);
     position: relative;
     z-index: 1;
-    backdrop-filter: blur(12px);
   }
 
   /* Branding */
@@ -1142,45 +1141,57 @@ function escapeHTML(str) {
 
   .lf-icon {
     position: absolute;
-    left: 11px;
-    color: #94a3b8;
+    left: 12px;
+    color: #b0bac6;
     pointer-events: none;
     flex-shrink: 0;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   .lf input {
     width: 100%;
-    background: #ffffff;
-    border: 1px solid rgba(16,24,40,0.14);
-    border-radius: 8px;
-    padding: 10px 12px 10px 36px;
+    background: #fafbfc;
+    border: 1px solid rgba(16,24,40,0.12);
+    border-radius: 7px;
+    padding: 10px 12px 10px 38px;
     color: #0d1117;
     font-size: 13.5px;
     font-family: var(--font);
-    transition: border-color 0.12s, box-shadow 0.12s;
+    transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
     outline: none;
-    line-height: 1;
+    line-height: 1.2;
+    letter-spacing: -0.1px;
   }
 
-  .lf input::placeholder { color: #c0ccd8; font-size: 13px; }
+  .lf input::placeholder {
+    color: #aab4c0;
+    font-size: 13px;
+    font-weight: 400;
+  }
 
-  .lf input:hover:not(:focus) { border-color: rgba(16,24,40,0.22); }
+  .lf input:hover:not(:focus) {
+    border-color: rgba(16,24,40,0.2);
+    background: #fff;
+  }
 
   .lf input:focus {
     border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
   }
 
   /* Forgot */
   .lc-forgot {
     font-size: 11.5px;
-    color: #2563eb;
+    color: #6b7280;
     cursor: pointer;
-    font-weight: 500;
+    font-weight: 400;
     text-decoration: none;
     transition: color 0.1s;
+    letter-spacing: 0;
   }
-  .lc-forgot:hover { color: #1d4ed8; text-decoration: underline; }
+  .lc-forgot:hover { color: #2563eb; }
 
   /* Submit button */
   .lb {
@@ -3270,6 +3281,174 @@ tbody tr:last-child td { border-bottom: none; }
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(16,24,40,0.18); }
+
+/* ── Inputs avec icônes — alignement premium ── */
+.lf-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lf-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+}
+
+.lf input {
+  padding-left: 36px;
+}
+
+/* Search bar icon alignement */
+.search-bar input,
+.stock-filters input,
+.filters-row input,
+.page-header input,
+.stock-header input {
+  padding-left: 34px;
+  background-repeat: no-repeat;
+  background-position: 11px center;
+  background-size: 13px 13px;
+}
+
+/* Nav items — icône/texte alignement */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.nav-item .icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Boutons — icône/texte */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+}
+
+/* Chips — icône/texte */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1.4;
+}
+
+/* Stat card icon + badge */
+.stat-card .stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  line-height: 1;
+}
+
+.stat-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* Card header icône/texte */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Form group label */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Table cells — alignement vertical */
+tbody td {
+  vertical-align: middle;
+  line-height: 1.45;
+}
+
+/* Client card avatar alignement */
+.client-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Sb-user alignement */
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  line-height: 1;
+}
+
+.sb-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Logo alignement */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* Topbar alignement */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Pay methods alignement */
+.pay-method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1.3;
+}
 </style>
 </head>
 <body>
@@ -3845,6 +4024,7 @@ tbody tr:last-child td { border-bottom: none; }
 
         <!-- Grid des locaux -->
         <div id="locaux-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px;"></div>
+        <div id="locaux-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
       </div>
       <!-- ═══════════════════════════════ CLIENTS ═══════════════════════════════ -->
       <div class="page" id="page-clients">
@@ -3855,6 +4035,7 @@ tbody tr:last-child td { border-bottom: none; }
         <div class="clients-grid" id="clients-grid">
           <div class="empty-state"><div class="emoji">👥</div><p>Aucun client enregistré</p></div>
         </div>
+        <div id="clients-pagination" class="pagination" style="margin-top:16px;"></div>
       </div>
 
       <!-- ═══════════════════════════════ ALERTES ═══════════════════════════════ -->
@@ -3875,6 +4056,7 @@ tbody tr:last-child td { border-bottom: none; }
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;" id="cont-stats"></div>
         <!-- Cards grid -->
         <div id="conteneurs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;"></div>
+        <div id="conteneurs-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
       </div>
 
       <!-- ═══════════════════════════════ ORDRES ═══════════════════════════════ -->
@@ -4102,6 +4284,7 @@ tbody tr:last-child td { border-bottom: none; }
               </div>
             </div>
             <div id="dep-list"></div>
+        <div id="dep-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
           </div>
         </div>
       </div>
@@ -4310,6 +4493,7 @@ tbody tr:last-child td { border-bottom: none; }
               </tr></thead>
               <tbody id="sa-users-table"></tbody>
             </table>
+          <div id="sausers-pagination" class="pagination" style="margin-top:12px;"></div>
           </div>
         </div>
 
@@ -4367,6 +4551,7 @@ tbody tr:last-child td { border-bottom: none; }
               <th>CIN</th><th>Salaire (MAD)</th><th>Date embauche</th><th>Statut</th><th>Actions</th>
             </tr></thead>
             <tbody id="employes-table"></tbody>
+        <div id="employes-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
           </table>
         </div>
       </div>
@@ -4391,6 +4576,7 @@ tbody tr:last-child td { border-bottom: none; }
               <th>Employé</th><th>Type</th><th>Du</th><th>Au</th><th>Jours</th><th>Motif</th><th>Statut</th><th>Actions</th>
             </tr></thead>
             <tbody id="conges-table"></tbody>
+        <div id="conges-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
           </table>
         </div>
       </div>
@@ -4417,6 +4603,7 @@ tbody tr:last-child td { border-bottom: none; }
               <th>Articles</th><th>Valeur</th><th>Statut</th><th>Actions</th>
             </tr></thead>
             <tbody id="bl-table"></tbody>
+        <div id="bl-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
           </table>
         </div>
       </div>
@@ -4451,6 +4638,7 @@ tbody tr:last-child td { border-bottom: none; }
           <table>
             <thead><tr><th>Date</th><th>Employé</th><th>Type</th><th>Actions</th></tr></thead>
             <tbody id="docs-rh-history"></tbody>
+        <div id="docsrh-pagination" class="pagination" style="margin-top:12px;padding:8px 0;"></div>
           </table>
         </div>
       </div>
@@ -8953,15 +9141,19 @@ function saveClient() {
   populateClientSelect();
 }
 
-function renderClients() {
+function renderClients(resetPage) {
+  if (resetPage !== false) _pages['clients'] = 1;
   const q = document.getElementById('client-search')?.value?.toLowerCase() || '';
   const filtered = clients.filter(c => c.name.toLowerCase().includes(q) || (c.phone || '').includes(q));
   const grid = document.getElementById('clients-grid');
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty-state"><div class="emoji">👥</div><p>${t('no_clients')}</p></div>`;
+    buildPagination('clients', 0, 'renderClients', 'clients-pagination');
     return;
   }
-  grid.innerHTML = filtered.map(c => {
+  const page = getPage('clients');
+  const pageData = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+  grid.innerHTML = pageData.map(c => {
     const totalPurchases = sales.filter(s => s.clientId === c.id).reduce((sum, s) => sum + s.total, 0);
     const category = totalPurchases >= 2000 ? 'vip' : totalPurchases >= 500 ? 'fidele' : 'normal';
     const catLabel = category === 'vip' ? '⭐ VIP' : category === 'fidele' ? '🥈 Fidèle' : '🥉 Nouveau';
@@ -9009,7 +9201,10 @@ function renderClients() {
       </div>
     `;
   }).join('');
+  buildPagination('clients', filtered.length, 'renderClients', 'clients-pagination');
 }
+
+function renderClients_resetPage() { _pages['clients']=1; renderClients(); }
 
 function viewClient(id) {
   viewingClientId = id;
@@ -9412,10 +9607,13 @@ function renderDepenses() {
   if (!listEl) return;
   if (!filtered.length) {
     listEl.innerHTML = `<div class="empty-state"><div class="emoji">💸</div><p>Aucune dépense enregistrée</p></div>`;
+    buildPagination('dep', 0, 'renderDepenses', 'dep-pagination');
     return;
   }
+  const depPage = getPage('dep');
+  const depPageData = filtered.slice((depPage-1)*PAGE_SIZE, depPage*PAGE_SIZE);
 
-  listEl.innerHTML = filtered.map(d => {
+  listEl.innerHTML = depPageData.map(d => {
     const icon = DEP_CATS[d.cat] || '📋';
     const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
     const recIcon = d.recurrence === 'monthly' ? '🔁 Mensuel' : d.recurrence === 'yearly' ? '🔁 Annuel' : '';
@@ -9433,6 +9631,7 @@ function renderDepenses() {
       </div>
     </div>`;
   }).join('');
+  buildPagination('dep', filtered.length, 'renderDepenses', 'dep-pagination');
 }
 
 async function saveDep() {
@@ -11233,10 +11432,13 @@ function renderConteneurs() {
   if (!grid) return;
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="emoji">🚢</div><p>${t('no_cont')}</p></div>`;
+    buildPagination('conteneurs', 0, 'renderConteneurs', 'conteneurs-pagination');
     return;
   }
+  const contPage = getPage('conteneurs');
+  const contPageData = filtered.slice((contPage-1)*PAGE_SIZE, contPage*PAGE_SIZE);
 
-  grid.innerHTML = filtered.map(c => {
+  grid.innerHTML = contPageData.map(c => {
     const limite = c.dateLimite ? new Date(c.dateLimite) : null;
     const joursR = limite ? Math.ceil((limite - today) / 86400000) : null;
     const sColor = c.statut==='sorti' ? 'var(--accent)' : c.statut==='retard' ? 'var(--red)' : '#ff9900';
@@ -11284,6 +11486,7 @@ function renderConteneurs() {
       </div>
     `;
   }).join('');
+  buildPagination('conteneurs', filtered.length, 'renderConteneurs', 'conteneurs-pagination');
 }
 
 // ════════════════════════════════════════════
@@ -11500,6 +11703,7 @@ function renderOrdres(resetPage) {
       </td>
     </tr>`;
   }).join('');
+  buildPagination('ordres', filtered.length, 'renderOrdres', 'ordres-pagination');
 }
 
 // ════════════════════════════════════════════
@@ -12016,7 +12220,9 @@ function renderLocaux() {
     return;
   }
 
-  let html = displayLocaux.map(l => {
+  const locPage = getPage('locaux');
+  const locPageData = displayLocaux.slice((locPage-1)*PAGE_SIZE, locPage*PAGE_SIZE);
+  let html = locPageData.map(l => {
     const col = LOCAL_COLORS[l.couleur] || LOCAL_COLORS.accent;
     const prods = getLocalProducts(l.nom);
     const totalStock = prods.reduce((s,p)=>s+(p.stock||0),0);
@@ -12097,6 +12303,7 @@ function renderLocaux() {
   }
 
   grid.innerHTML = html;
+  buildPagination('locaux', displayLocaux.length, 'renderLocaux', 'locaux-pagination');
 }
 
 function renderFonds() {
@@ -12299,10 +12506,13 @@ function renderEmployes() {
   if(!tbody) return;
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text2);">👨‍💼 Aucun employé enregistré</td></tr>`;
+    buildPagination('employes', 0, 'renderEmployes', 'employes-pagination');
     return;
   }
+  const empPage = getPage('employes');
+  const empPageData = filtered.slice((empPage-1)*PAGE_SIZE, empPage*PAGE_SIZE);
   const statutBadge = {actif:'<span style="background:rgba(37,99,235,.12);color:var(--accent);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">✅ Actif</span>', conge:'<span style="background:rgba(255,209,102,.12);color:var(--gold);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">🏖️ Congé</span>', inactif:'<span style="background:rgba(255,71,87,.12);color:var(--red);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">❌ Inactif</span>'};
-  tbody.innerHTML = filtered.map(e => `<tr>
+  tbody.innerHTML = empPageData.map(e => `<tr>
     <td><strong>${escapeHTML(e.name)}</strong>${e.prenom?' '+e.prenom:''}</td>
     <td style="color:var(--text2);">${e.poste||'—'}</td>
     <td style="color:var(--text2);">${e.dept||'—'}</td>
@@ -12318,6 +12528,7 @@ function renderEmployes() {
       ${(isSuperAdmin()||hasPermission('employes','delete')) ? `<button class="btn btn-danger btn-sm" onclick="deleteEmploye('${e.id}')">🗑️</button>` : ''}
     </td>
   </tr>`).join('');
+  buildPagination('employes', filtered.length, 'renderEmployes', 'employes-pagination');
 }
 
 function openEmployeModal(id) {
@@ -12450,15 +12661,18 @@ function renderConges() {
   if (!tbody) return;
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text2);">🏖️ Aucune demande de congé</td></tr>`;
+    buildPagination('conges', 0, 'renderConges', 'conges-pagination');
     return;
   }
+  const congesPage = getPage('conges');
+  const congesPageData = filtered.slice((congesPage-1)*PAGE_SIZE, congesPage*PAGE_SIZE);
   const typeLabel = {annuel:'🏖️ Annuel', maladie:'🏥 Maladie', maternite:'🤱 Maternité', sans_solde:'💸 Sans solde', exceptionnel:'⚠️ Exceptionnel'};
   const stBadge = {
     pending: '<span style="background:rgba(255,209,102,.15);color:var(--gold);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">⏳ En attente</span>',
     approved:'<span style="background:rgba(37,99,235,.12);color:var(--accent);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">✅ Approuvé</span>',
     rejected:'<span style="background:rgba(255,71,87,.12);color:var(--red);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">❌ Refusé</span>'
   };
-  tbody.innerHTML = filtered.map(c => {
+  tbody.innerHTML = congesPageData.map(c => {
     const emp = employes.find(e => e.id === c.empId);
     return `<tr>
       <td><strong>${emp?.name||'—'}</strong>${emp?.poste?`<br><small style="color:var(--text2);">${escapeHTML(emp.poste)}</small>`:''}</td>
@@ -12476,6 +12690,7 @@ function renderConges() {
         ${(isSuperAdmin()||hasPermission('conges','delete'))?`<button class="btn btn-danger btn-sm" onclick="deleteConge('${c.id}')">🗑️</button>`:''}
     </tr>`;
   }).join('');
+  buildPagination('conges', filtered.length, 'renderConges', 'conges-pagination');
 }
 
 function openCongeModal(id) {
@@ -12572,14 +12787,17 @@ function renderLivraisons() {
   if (!tbody) return;
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text2);">🚚 Aucun bon de livraison</td></tr>`;
+    buildPagination('bl', 0, 'renderLivraisons', 'bl-pagination');
     return;
   }
+  const blPage = getPage('bl');
+  const blPageData = filtered.slice((blPage-1)*PAGE_SIZE, blPage*PAGE_SIZE);
   const stBadge = {
     en_cours:`<span style="background:rgba(255,209,102,.12);color:var(--gold);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">🔄 En cours</span>`,
     livre:`<span style="background:rgba(37,99,235,.12);color:var(--accent);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">✅ Livré</span>`,
     retour:`<span style="background:rgba(255,71,87,.12);color:var(--red);padding:2px 8px;border-radius:var(--radius-lg);font-size:11px;font-weight:700;">↩️ Retour</span>`
   };
-  tbody.innerHTML = filtered.map(bl => `<tr>
+  tbody.innerHTML = blPageData.map(bl => `<tr>
     <td><strong style="font-family:var(--font-mono),monospace;">${bl.numero}</strong></td>
     <td style="font-size:12px;color:var(--text2);">${bl.date||'—'}</td>
     <td><strong>${bl.client||'—'}</strong>${bl.adresse?`<br><small style="color:var(--text2);">${escapeHTML(bl.adresse)}</small>`:''}</td>
@@ -12593,6 +12811,7 @@ function renderLivraisons() {
       ${(isSuperAdmin()||hasPermission('livraisons','delete')) ? `<button class="btn btn-danger btn-sm" onclick="deleteBL('${bl.id}')">🗑️</button>` : ''}
     </td>
   </tr>`).join('');
+  buildPagination('bl', filtered.length, 'renderLivraisons', 'bl-pagination');
 }
 
 function openBLModal(id) {
@@ -12747,7 +12966,10 @@ function renderDocsRH() {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text2);">Aucun document généré</td></tr>`;
     return;
   }
-  tbody.innerHTML = docsRHHistory.slice().reverse().map(d => {
+  const docsrhSorted = docsRHHistory.slice().reverse();
+  const docsrhPage = getPage('docsrh');
+  const docsrhPageData = docsrhSorted.slice((docsrhPage-1)*PAGE_SIZE, docsrhPage*PAGE_SIZE);
+  tbody.innerHTML = docsrhPageData.map(d => {
     const emp = employes.find(e=>e.id===d.empId);
     const typeLabel = {certificat_travail:'📜 Certificat de travail', attestation_salaire:'💰 Attestation de salaire', lettre_recommandation:'✉️ Lettre de recommandation'};
     return `<tr>
@@ -12757,6 +12979,7 @@ function renderDocsRH() {
       <td><button class="btn btn-secondary btn-sm" onclick="regenDocRH('${d.id}')">🖨️ Réimprimer</button></td>
     </tr>`;
   }).join('');
+  buildPagination('docsrh', docsRHHistory.length, 'renderDocsRH', 'docsrh-pagination');
 }
 
 function updateDocRHForm() {
@@ -15199,9 +15422,11 @@ function renderSAUsers() {
     return true;
   });
 
+  const sauPage = getPage('sausers');
+  const sauPageData = filtered.slice((sauPage-1)*PAGE_SIZE, sauPage*PAGE_SIZE);
   tbody.innerHTML = filtered.length === 0
     ? '<tr><td colspan="7" style="text-align:center;color:var(--text2);">Aucun utilisateur</td></tr>'
-    : filtered.map(u => {
+    : sauPageData.map(u => {
       const loc = GP_LOCAUX_ALL.find(l => l.id === u.local_id);
       const role = getRole(u.role);
       return `<tr>
@@ -15217,6 +15442,7 @@ function renderSAUsers() {
         </td>
       </tr>`;
     }).join('');
+  buildPagination('sausers', filtered.length, 'renderSAUsers', 'sausers-pagination');
 }
 
 function updateSAUserLocalVisibility() {
